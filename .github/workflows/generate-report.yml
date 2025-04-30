@@ -1,0 +1,100 @@
+name: Generate report
+
+on:
+  workflow_call:
+    inputs:
+      env:
+        type: string
+      run-id:
+        type: string
+      component:
+        type: string
+      sdk-ts:
+        type: boolean
+      sdk-kmp:
+        type: boolean
+      sdk-swift:
+        type: boolean
+
+jobs:
+  report:
+    name: "Generate report for ${{ inputs.component }}"
+    runs-on: ubuntu-latest
+    env:
+      COMPONENT: ${{ inputs.component }}
+      ENV: ${{ inputs.ENV }}
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download sdk-ts report
+        if: inputs.sdk-ts
+        uses: actions/download-artifact@v4
+        with:
+          name: sdk-ts
+          path: tmp/sdk-ts
+          run-id: ${{ inputs.run-id }}
+          github-token: ${{ secrets.GH_TOKEN }}
+
+      - name: Download sdk-kmp report
+        if: inputs.sdk-kmp
+        uses: actions/download-artifact@v4
+        with:
+          name: sdk-kmp
+          path: tmp/sdk-kmp
+          run-id: ${{ inputs.run-id }}
+          github-token: ${{ secrets.GH_TOKEN }}
+          
+      - name: Download sdk-swift
+        if: inputs.sdk-swift
+        uses: actions/download-artifact@v4
+        with:
+          name: sdk-swift
+          path: tmp/sdk-swift
+          run-id: ${{ inputs.run-id }}
+          github-token: ${{ secrets.GH_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: crazy-max/ghaction-import-gpg@v6
+        id: import_gpg
+        with:
+          gpg_private_key: ${{ secrets.GPG_KEY }}
+          git_user_signingkey: true
+          git_commit_gpgsign: true
+          git_config_global: true
+          git_tag_gpgsign: false
+
+      - name: Aggregate reports
+        run: |
+          npm i
+          npm run report
+
+      - name: Update reports
+        run: |
+          git add reports
+          git commit -S -s -m "chore: update '${{ inputs.component }}' reports"
+          git push
+
+      - name: Upload pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './reports'
+
+  update-site:
+    needs: report
+    name: Update report website
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,12 @@
+node_modules
+.env
+
+# misc
+env.json
+scripts
+
+# sdks
+identus-edge-agent-sdk-ts
+identus-edge-agent-sdk-kmp
+tmp
+

@@ -1,0 +1,19 @@
+name: Weekly
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: 0 3 * * 6
+
+jobs:
+  weekly:
+    name: "Trigger 'weekly' integration"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Dispatch integration
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          repository: hyperledger-identus/integration
+          event-type: integration
+          client-payload: '{"component": "weekly", "version": "" }'

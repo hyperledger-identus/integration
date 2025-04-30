@@ -1,0 +1,104 @@
+name: Integration
+
+run-name: "Integrate: ${{ github.event.client_payload.component }}"
+
+on:
+  repository_dispatch:
+    types:
+      - 'integration'
+
+jobs:
+  main:
+    name: "Trigger '${{ github.event.client_payload.component }}' integration"
+    runs-on: ubuntu-latest
+
+    outputs:
+      env: ${{ steps.components.outputs.env }} # base64 encoded
+      sdk-ts: ${{ steps.components.outputs.sdk-ts }}
+      sdk-kmp: ${{ steps.components.outputs.sdk-kmp }}
+      sdk-swift: ${{ steps.components.outputs.sdk-swift }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Define runners
+        id: components
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          COMPONENT: ${{ github.event.client_payload.component }}
+          VERSION: ${{ github.event.client_payload.version }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          npm i
+          ENV="$(npm run environment --silent)" && echo "env=$ENV" >> "$GITHUB_OUTPUT"
+          echo "sdk-ts=$(echo $ENV | base64 --decode | jq -r '.runners.["sdk-ts"].enabled')" >> "$GITHUB_OUTPUT"
+          echo "sdk-kmp=$(echo $ENV | base64 --decode | jq -r '.runners.["sdk-kmp"].enabled')" >> "$GITHUB_OUTPUT"
+          echo "sdk-swift=$(echo $ENV | base64 --decode | jq -r '.runners.["sdk-swift"].enabled')" >> "$GITHUB_OUTPUT"
+          echo $ENV | base64 --decode
+
+  cloud-setup:
+    needs: main
+    name: Cloud setup
+    runs-on: ubuntu
+    env:
+      ENV: ${{ needs.main.outputs.env }}
+      CLOUD_TOKEN: ${{ secrets.CLOUD_SERVICE_TOKEN }}
+      CLOUD_SERVICE_URL: ${{ secrets.CLOUD_SERVICE_URL }}
+      CLOUD_SERVICE_PROJECT: ${{ secrets.CLOUD_SERVICE_PROJECT }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup environment
+        run: npm run cloud:setup
+
+  sdk-ts:
+    needs: [main, cloud-setup]
+    if: needs.main.outputs.sdk-ts  == 'true'
+    secrets: inherit
+    uses: ./.github/workflows/sdk-ts.yml
+    with:
+      ENV: ${{ needs.main.outputs.env }}
+
+  sdk-kmp:
+    needs: [main, cloud-setup]
+    if: false # needs.main.outputs.sdk-kmp  == 'true'
+    secrets: inherit
+    uses: ./.github/workflows/sdk-kmp.yml
+    with:
+      ENV: ${{ needs.main.outputs.env }}
+
+  sdk-swift:
+    needs: [main, cloud-setup]
+    if: false # needs.main.outputs.sdk-swift  == 'true'
+    secrets: inherit
+    uses: ./.github/workflows/sdk-swift.yml
+    with:
+      ENV: ${{ needs.main.outputs.env }}
+
+  generate-reports:
+    needs: [main, sdk-ts, sdk-kmp, sdk-swift]
+    if: always()
+    secrets: inherit
+    uses: ./.github/workflows/generate-report.yml
+    permissions:
+      pages: write
+      id-token: write
+      contents: write
+    with:
+      env: ${{ needs.main.outputs.env }}
+      run-id: ${{ github.run_id }}
+      component: ${{ github.event.client_payload.component }}
+      sdk-ts: ${{ needs.sdk-ts.result != 'skipped' }}
+      sdk-kmp: ${{ needs.sdk-kmp.result != 'skipped' }}
+      sdk-swift: ${{ needs.sdk-swift.result != 'skipped' }}

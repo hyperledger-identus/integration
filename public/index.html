@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Identus Integration</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.2/css/bulma.min.css">
+  <link id="favicon" rel="icon" href="" type="image/svg+xml">
+  <style>
+    html,
+    body {
+      height: 100%;
+      /* Ensure full viewport height */
+      margin: 0;
+      padding: 0;
+    }
+
+    #content-iframe {
+      width: 100%;
+      padding-top: 52px;
+      height: 100%;
+      /* Adjust height based on navbar height */
+      border: none;
+      /* Remove default iframe border */
+    }
+
+    @media screen and (max-width: 1023px) {
+      #content-iframe {
+        height: calc(100% - 96px);
+        /* Adjust for collapsed navbar */
+      }
+    }
+  </style>
+  <script>
+    (function () {
+      const basePath = window.location.host.includes('localhost') ? "/" : "/integration/"
+      const favicon = document.getElementById('favicon');
+      favicon.href = `${basePath}static/identus.svg`;
+      var script = document.createElement('script');
+      script.src = `${basePath}static/main.js`;
+      document.head.appendChild(script);
+    })()
+  </script>
+</head>
+
+<body style="display: none">
+  <nav class="navbar is-transparent is-fixed-top" role="navigation" aria-label="main navigation">
+    <div class="navbar-brand">
+      <a href="/" class="navbar-item">
+        <img src="static/identus.svg" alt="Identus">
+      </a>
+
+      <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarBasicExample">
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+      </a>
+    </div>
+
+    <div id="navbar" class="navbar-menu">
+      <div class="navbar-start">
+        <a href="/releases" class="navbar-item">Releases</a>
+        <a href="/weekly" class="navbar-item">Weekly</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <div class="navbar-link">Services</div>
+          <div class="navbar-dropdown is-boxed">
+            <a href="/cloud-agent" class="navbar-item">Cloud Agent</a>
+            <a href="/mediator" class="navbar-item">Mediator</a>
+            <a href="/prism-node" class="navbar-item">Prism Node</a>
+          </div>
+        </div>
+
+        <div class="navbar-item has-dropdown is-hoverable">
+          <div class="navbar-link">SDKs</div>
+          <div class="navbar-dropdown is-boxed">
+            <a href="/typescript" class="navbar-item">Typescript</a>
+            <a href="/swift" class="navbar-item">Swift</a>
+            <a href="/kotlin" class="navbar-item">Kotlin</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+  <iframe id="content-iframe" src=""></iframe>
+</body>
+
+</html>
