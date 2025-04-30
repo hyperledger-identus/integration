@@ -5,7 +5,7 @@ import { cmd } from "../cmd.js";
 import { environment, runner, runners } from "../types.js";
 import { slack } from "../slack.js";
 
-const githubPage = "https://hyperledger-identus.github.io/"
+const githubPage = "https://hyperledger-identus.github.io/integration/"
 
 const htmlTemplate = `<!DOCTYPE html>
 <html lang="en">
@@ -53,7 +53,7 @@ async function generateExecutorFile(resultsDir: string, env: environment, newRep
 
 async function generateRedirectPage(component: string, nextReportId: number) {
     const html = htmlTemplate.replace("%PAGE%", `${nextReportId}`)
-    await fs.writeFile(`reports/${component}/index.html`, html)
+    await fs.writeFile(`public/reports/${component}/index.html`, html)
 }
 
 async function getSubfolders(dir: string): Promise<string[]> {

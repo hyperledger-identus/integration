@@ -6,7 +6,8 @@ env.json
 scripts
 
 # sdks
-identus-edge-agent-sdk-ts
-identus-edge-agent-sdk-kmp
+sdk-ts
+sdk-kmp
+sdk-swift
 tmp
 

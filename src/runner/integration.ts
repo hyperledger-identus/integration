@@ -38,31 +38,29 @@ async function run(requestedRunner: runner) {
     // setup
     dotenv.config()
     const env: environment = JSON.parse(atob(process.env.ENV!))
-    console.info("Configuration", "\n", env)
 
     const runnerConfig = env.runners[requestedRunner]
-
     if (!runnerConfig.enabled) {
         throw 'Something went wrong. The requested runner is disabled.'
     }
 
     // replace ssh to https
-    execSync(`git config --global url."https://github.com/".insteadOf git@github.com:`)
+    // execSync(`git config --global url."https://github.com/".insteadOf git@github.com:`)
 
     // remove any tmp data
-    cmd(`rm -rf tmp`)
+    // cmd(`rm -rf tmp`)
 
     // setup runner
     const runner: Runner = getRunner(requestedRunner, runnerConfig)
-    await runner.cleanup()
+    // await runner.cleanup()
 
-    await runIntegration(runner)
+    // await runIntegration(runner)
 
     // move to tmp for upload
-    runner.moveAllureResultsToTmp(requestedRunner)
+    await runner.moveAllureResultsToTmp(requestedRunner)
 
     // cleanup
-    await runner.cleanup()
+    // await runner.cleanup()
 }
 
 export const integration = {

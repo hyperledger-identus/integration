@@ -55,20 +55,11 @@ async function run(trigger: 'check' | 'setup') {
             throw 'Cloud service update failed'
         }
 
-        const services = ["cloud-agent", "mediator", "prism-node"]
-        const restartPromises = services.map(async (service) => {
-            console.log("restarting service", service)
-            const restartResponse = await fetch(`${cloudApiBaseUrl}/projects/${cloudProjectName}/${service}/restart`, {
-                method: 'POST',
-                headers
-            });
-        
-            if (restartResponse.status !== 200) {
-                throw `Failed to restart service [${service}]`
-            }
-        })
+        const restartResponse = await fetch(`${cloudApiBaseUrl}/projects/${cloudProjectName}/up`, {
+            method: 'POST',
+            headers
+        });
 
-        await Promise.all(restartPromises)
     }
 }
 

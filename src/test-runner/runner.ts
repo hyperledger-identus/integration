@@ -16,18 +16,23 @@ export abstract class Runner {
     abstract readonly allureResultsDirectory: string
 
     async cleanup() {
-        await cmd(`rm -rf ${this.repo}`)
+        // await cmd(`rm -rf ${this.repo}`)
     }
 
     protected async cloneRepository() {
-        await cmd(`git clone https://github.com/${this.owner}/${this.repo}.git`)
+        await cmd(`git clone --depth=1 https://github.com/${this.owner}/${this.repo}.git`)
+        if (!this.build) {
+            this.version = `v${this.version}`
+            // await cmd(`git fetch --depth 1 origin refs/tags/${this.version}`)
+            await cmd (`git fetch origin tag ${this.version}`, { cwd: this.repo })
+        }
         await cmd(`git checkout ${this.version}`, { cwd: this.repo })
     }
 
     async execute() {
         await this.cloneRepository()
         await this.prepare()
-        await cmd(this.runCommand, { env: this.env() })
+        await cmd(this.runCommand, { cwd: this.testDir, env: this.env() })
     }
 
     async moveAllureResultsToTmp(requestedRunner: string) {

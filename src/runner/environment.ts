@@ -11,7 +11,7 @@ async function run(): Promise<string> {
     })
 
     async function getLatestReleaseTag(repo: repo): Promise<string> {
-        console.info("fetching latest release tag for", repo)
+        console.info("fetching latest github release tag for", repo)
         const releases = await octokit.rest.repos.listReleases({
             owner: 'hyperledger-identus',
             repo: repo,
@@ -21,7 +21,7 @@ async function run(): Promise<string> {
     }
 
     async function getLatestCommit(repo: repo): Promise<string> {
-        console.info("fetching lastest commit for", repo)
+        console.info("fetching lastest github commit for", repo)
         const commits = await octokit.rest.repos.listCommits({
             owner: 'hyperledger-identus',
             repo: repo,
@@ -29,14 +29,16 @@ async function run(): Promise<string> {
         return commits.data[0].sha
     }
 
-    async function getLatestRevision(packageName: string): Promise<string> {
-        console.info("fetching latest revision for", packageName)
-        const packageList = await octokit.rest.packages.getAllPackageVersionsForPackageOwnedByOrg({
-            org: 'hyperledger-identus',
-            package_name: packageName,
-            package_type: 'container'
-        })
-        return packageList.data[0].metadata!.container!.tags[0]
+    async function getLatestDockerRevision(serviceName: string): Promise<string> {
+        console.info("fetching latest docker revision for", serviceName)
+        const response = await fetch(
+            `https://hub.docker.com/v2/repositories/hyperledgeridentus/${serviceName}/tags`, 
+            { method: 'GET' }
+        )
+        return (await response.json()).results.find((tag: any) => {
+            const semverRegex = /^\d+\.\d+(\.\d+)?(-.+)?/;
+            return semverRegex.test(tag.name);
+        }).name
     }
 
     function extractSemVer(versionString: string): string {
@@ -90,8 +92,8 @@ async function run(): Promise<string> {
 
     if (component == 'weekly') {
         environment['services']['node']['version'] = '2.5.0'
-        environment['services']['agent']['version'] = await getLatestRevision('identus-cloud-agent')
-        environment['services']['mediator']['version'] = await getLatestRevision('identus-mediator')
+        environment['services']['agent']['version'] = await getLatestDockerRevision('identus-cloud-agent')
+        environment['services']['mediator']['version'] = await getLatestDockerRevision('identus-mediator')
         environment['runners']['sdk-ts'] = initRunner(true, true, await getLatestCommit('sdk-ts'))
         environment['runners']['sdk-kmp'] = initRunner(true, true, await getLatestCommit('sdk-kmp'))
         environment['runners']['sdk-swift'] = initRunner(true, true, await getLatestCommit('sdk-swift'))

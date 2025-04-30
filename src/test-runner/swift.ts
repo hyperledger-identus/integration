@@ -2,8 +2,8 @@ import { Runner } from "./runner.js";
 
 export class SwiftSdk extends Runner {
     readonly name = "sdk-swift"
-    readonly owner = "hyperledger"
-    readonly repo = "identus-edge-agent-sdk-swift"
+    readonly owner = "hyperledger-identus"
+    readonly repo = "sdk-swift"
     readonly artifactName = ""
 
     readonly testDir = ""

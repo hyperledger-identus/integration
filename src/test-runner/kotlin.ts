@@ -2,8 +2,8 @@ import { Runner } from "./runner.js";
 
 export class KotlinSdk extends Runner {
     readonly name = "sdk-kmp"
-    readonly owner = "hyperledger"
-    readonly repo = "identus-edge-agent-sdk-kmp"
+    readonly owner = "hyperledger-identus"
+    readonly repo = "sdk-kmp"
     readonly artifactName = ""
 
     readonly testDir = ""

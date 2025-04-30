@@ -3,14 +3,14 @@ import { cmd } from "../cmd.js";
 
 export class TypescriptSdk extends Runner {
     readonly name = "sdk-ts"
-    readonly owner = "hyperledger"
+    readonly owner = "hyperledger-identus"
     readonly repo = "sdk-ts"
     readonly artifactName = "@hyperledger/identus-edge-agent-sdk"
 
     readonly testDir = `${this.repo}/integration-tests/e2e-tests`
     readonly allureResultsDirectory = `${this.testDir}/allure-results`
 
-    readonly runCommand = `yarn --cwd ${this.testDir} test:sdk`
+    readonly runCommand = `npm run test:sdk`
 
     // helper to run npm commands
     private async npm(command: string, dir: string = this.testDir): Promise<string> {
@@ -19,8 +19,8 @@ export class TypescriptSdk extends Runner {
 
     protected urls() {
         return {
-            MEDIATOR_OOB_URL: "http://localhost:8080/invitationOOB",
-            AGENT_URL: "http://localhost:8085/",
+            MEDIATOR_OOB_URL: process.env.MEDIATOR_OOB_URL!,
+            AGENT_URL: process.env.AGENT_URL! + (process.env.AGENT?.endsWith("/") ? "" : "/")
         }
     }
 
@@ -30,11 +30,11 @@ export class TypescriptSdk extends Runner {
         if (this.build) {
             await this.npm("install", this.repo)
             await this.npm("run build", this.repo)
-            await cmd(`yarn --ignore-scripts add ${this.artifactName}@../..`, options)
+            await cmd(`npm install ${this.artifactName}@../..`, options)
         } else {
-            await cmd(`yarn --ignore-scripts add ${this.artifactName}@${this.version}`, options)
+            await cmd(`npm install ${this.artifactName}@${this.version}`, options)
         }
         
-        await cmd(`yarn --ignore-scripts`, options)
+        await cmd(`npm install`, options)
     }
 }
