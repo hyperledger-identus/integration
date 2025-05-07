@@ -51,7 +51,7 @@ async function run(requestedRunner: runner) {
 
     // setup runner
     const runner: Runner = getRunner(requestedRunner, runnerConfig)
-    // await runner.cleanup()
+    await runner.cleanup()
 
     await runIntegration(runner)
 
@@ -59,7 +59,7 @@ async function run(requestedRunner: runner) {
     await runner.moveAllureResultsToTmp(requestedRunner)
 
     // cleanup
-    // await runner.cleanup()
+    await runner.cleanup()
 }
 
 export const integration = {
