@@ -14,4 +14,4 @@ jobs:
         with:
           repository: hyperledger-identus/integration
           event-type: integration
-          client-payload: '{"component": "cloud-agent", "version": "1.40.0" }'
+          client-payload: '{"component": "cloud-agent", "version": "2.0.0" }'
