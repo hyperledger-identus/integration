@@ -36,7 +36,6 @@ function loadContent(path) {
   }
   if (!routes[path]) {
     const route = matchRoute(routes, path);
-    console.info("match route", route)
     contentFrame.contentWindow.location.replace(route + "?c=" + Date.now());
   } else {
     contentFrame.contentWindow.location.replace(routes[path] + "?c=" + Date.now());

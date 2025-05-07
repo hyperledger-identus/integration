@@ -23,7 +23,7 @@ jobs:
     env:
       COMPONENT: ${{ inputs.component }}
       ENV: ${{ inputs.ENV }}
-      GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
 
     steps:
@@ -37,7 +37,7 @@ jobs:
           name: sdk-ts
           path: tmp/sdk-ts
           run-id: ${{ inputs.run-id }}
-          github-token: ${{ secrets.GH_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download sdk-kmp report
         if: inputs.sdk-kmp
@@ -46,7 +46,7 @@ jobs:
           name: sdk-kmp
           path: tmp/sdk-kmp
           run-id: ${{ inputs.run-id }}
-          github-token: ${{ secrets.GH_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           
       - name: Download sdk-swift
         if: inputs.sdk-swift
@@ -55,7 +55,7 @@ jobs:
           name: sdk-swift
           path: tmp/sdk-swift
           run-id: ${{ inputs.run-id }}
-          github-token: ${{ secrets.GH_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-node@v4
         with:

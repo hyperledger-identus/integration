@@ -16,7 +16,7 @@ export abstract class Runner {
     abstract readonly allureResultsDirectory: string
 
     async cleanup() {
-        // await cmd(`rm -rf ${this.repo}`)
+        await cmd(`rm -rf ${this.repo}`)
     }
 
     protected async cloneRepository() {
@@ -30,8 +30,11 @@ export abstract class Runner {
     }
 
     async execute() {
+        console.log(`[${this.name}] cloning repository`)
         await this.cloneRepository()
+        console.log(`[${this.name}] preparing dependencies`)
         await this.prepare()
+        console.log(`[${this.name}] starting tests`)
         await cmd(this.runCommand, { cwd: this.testDir, env: this.env() })
     }
 

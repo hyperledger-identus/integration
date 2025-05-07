@@ -52,7 +52,7 @@ async function run(trigger: 'check' | 'setup') {
         })
 
         if (updateResponse.status != 202) {
-            throw 'Cloud service update failed'
+            throw 'Cloud services update failed'
         }
 
         const restartResponse = await fetch(`${cloudApiBaseUrl}/projects/${cloudProjectName}/up`, {
@@ -60,6 +60,9 @@ async function run(trigger: 'check' | 'setup') {
             headers
         });
 
+        if (restartResponse.status != 200) {
+            throw 'Cloud services failed to synchronize'
+        }
     }
 }
 

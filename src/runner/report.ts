@@ -80,16 +80,27 @@ async function postProcessAllure(reportPath: string) {
 interface TestResult {
     uuid: string;
     status: string;
+    labels?: Label[];
 }
 
-async function preProcessAllure(resultsDir: string): Promise<boolean> {
+interface Label {
+    name: string;
+    value: string;
+}
+
+async function preProcessAllure(resultsDir: string, runner: runner): Promise<boolean> {
     const files = (await fs.readdir(resultsDir)).filter(f => f.includes("-result.json"))
     for (const file of files) {
         const filePath = path.join(resultsDir, file)
         if (path.extname(file) === '.json') {
             const fileContent = await fs.readFile(filePath, 'utf-8')
             const result: TestResult = JSON.parse(fileContent)
-            if (result.status === 'failed') {
+            if (!result.labels) {
+                result.labels = [];
+            }
+            result.labels.push({ name: "tag", value: runner });
+            await fs.writeFile(filePath, JSON.stringify(result), 'utf-8');
+            if (result.status === 'failed' || result.status == 'broken') {
                 return false
             }
         }
@@ -117,9 +128,7 @@ async function run() {
     await getEnabledRunners(env, async (runner) => {
         const partialResultDir: string = `tmp/${runner}`
         try {
-            console.warn(`Pending labelling`)
-            // TODO: pre process all results to attach `runner` label
-            executionPassed = executionPassed && await preProcessAllure(partialResultDir)
+            executionPassed = executionPassed && await preProcessAllure(partialResultDir, runner)
             await cmd(`cp -r ${partialResultDir}/* ${tmpResultsDir}`)
         } catch (e) {
             console.error(`Could not find the '${partialResultDir}' allure results`)

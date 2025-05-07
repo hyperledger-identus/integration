@@ -107,15 +107,19 @@ async function run(): Promise<string> {
         environment['runners']['sdk-swift'] = initRunner(true, false, await getLatestReleaseTag('sdk-swift'))
     }
 
-    environment['services']['node']['version'] = '2.5.0'
-    environment['services']['agent']['version'] = await getLatestReleaseTag('cloud-agent')
-    environment['services']['mediator']['version'] = await getLatestReleaseTag('mediator')
-
     // set individual component version
     if (component == 'cloud-agent') {
         environment['services']['agent']['version'] = process.env.VERSION!
+        environment['services']['mediator']['version'] = await getLatestReleaseTag('mediator')
+        environment['services']['node']['version'] = '2.5.0'
     } else if (component == 'mediator') {
+        environment['services']['agent']['version'] = await getLatestReleaseTag('cloud-agent')
         environment['services']['mediator']['version'] = process.env.VERSION!
+        environment['services']['node']['version'] = '2.5.0'
+    } else if (component == 'prism-node') {
+        environment['services']['agent']['version'] = await getLatestReleaseTag('cloud-agent')
+        environment['services']['mediator']['version'] = await getLatestReleaseTag('mediator')
+        environment['services']['node']['version'] = '2.5.0'
     } else if (component == 'sdk-ts') {
         environment['runners']['sdk-ts'] = initRunner(true, true, process.env.VERSION!)
     } else if (component == 'sdk-kmp') {

@@ -14,7 +14,6 @@ const availableRunners = [
 ] as const
 
 function getRunner(requestedRunner: runner, runnerConfig: runnerConfig): Runner {
-    availableRunners.forEach((runner) => console.log(runner))
     let runner = availableRunners.find((runner) => runner.name == requestedRunner)
     if (!runner) {
         throw new Error('Element not found')
@@ -25,12 +24,12 @@ function getRunner(requestedRunner: runner, runnerConfig: runnerConfig): Runner 
 }
 
 async function runIntegration(sdk: Runner) {
-    console.info(`[${sdk.name}] end-to-end started`)
+    console.info(`[${sdk.name}] runner started`)
     try {
         await sdk.execute()
-        console.info(`[${sdk.name}] end-to-end finished successfully`)
+        console.info(`[${sdk.name}] runner finished successfully`)
     } catch (e) {
-        console.error(`[${sdk.name}] end-to-end failed:`, e)
+        console.error(`[${sdk.name}] runner failed:`, e)
     }
 }
 
@@ -45,16 +44,16 @@ async function run(requestedRunner: runner) {
     }
 
     // replace ssh to https
-    // execSync(`git config --global url."https://github.com/".insteadOf git@github.com:`)
+    execSync(`git config --global url."https://github.com/".insteadOf git@github.com:`)
 
     // remove any tmp data
-    // cmd(`rm -rf tmp`)
+    cmd(`rm -rf tmp`)
 
     // setup runner
     const runner: Runner = getRunner(requestedRunner, runnerConfig)
     // await runner.cleanup()
 
-    // await runIntegration(runner)
+    await runIntegration(runner)
 
     // move to tmp for upload
     await runner.moveAllureResultsToTmp(requestedRunner)
