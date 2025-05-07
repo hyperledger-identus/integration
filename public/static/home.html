@@ -1,62 +1,16 @@
 <!DOCTYPE html>
-<html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Markdown Viewer</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.8.1/github-markdown.min.css"
+        integrity="sha512-BrOPA520KmDMqieeM7XFe6a3u3Sb3F1JBaQnrIAmWg3EYrciJ+Qqe6ZcKCdfPv26rGcgTrJnZ/IdQEct8h3Zhw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
     <script src="https://cdn.jsdelivr.net/npm/mermaid@11.6.0/dist/mermaid.min.js"></script>
     <style>
         body {
             display: flex;
             justify-content: center;
             align-items: center;
-            margin: 15px;
-            font-family: 'Roboto', sans-serif;
-        }
-
-        .markdown-body pre {
-            padding: 10px;
-            background-color: #f6f8fa;
-            border-radius: 8px;
-            overflow-x: auto;
-        }
-
-        .mermaid {
-            /* background: #f6f8fa; */
-            border-radius: 8px;
-            margin-bottom: 1em;
-            display: block;
-            max-width: 100%; /* Make it responsive */
-        }
-
-        .mermaid svg {
-            max-width: 100%;
-        }
-
-        .markdown-body table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 1em;
-        }
-
-        .markdown-body th,
-        .markdown-body td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-
-        .markdown-body th {
-            background-color: #f0f0f0;
-            font-weight: bold;
-        }
-
-        .markdown-body tr:nth-child(even) {
-            background-color: #f9f9f9;
         }
     </style>
 </head>
@@ -66,63 +20,57 @@
 
     <script>
         async function loadMarkdown() {
-            try {
-                const response = await fetch('README.md');
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const markdownText = await response.text();
-
-                const converter = new showdown.Converter({
-                    tables: true,
-                    strikethrough: true,
-                    tasklists: true,
-                    simplifiedAutoLink: true,
-                    openLinksInNewWindow: true,
-                    ghCodeBlocks: true
-                });
-
-                let html = converter.makeHtml(markdownText);
-                document.querySelector('.markdown-body').innerHTML = html;
-
-                mermaid.initialize({ startOnLoad: false });
-
-                const preBlocks = document.querySelectorAll('pre');
-                preBlocks.forEach((pre, index) => {
-                    const codeBlock = pre.querySelector('code.language-mermaid');
-                    if (codeBlock) {
-                        const mermaidCode = codeBlock.textContent;
-                        const graphDiv = document.createElement('div');
-                        graphDiv.className = 'mermaid';
-                        pre.parentNode.insertBefore(graphDiv, pre);
-                        const graphId = `mermaid-graph-${index}`; // Create a unique ID
-                        mermaid.render(graphId, mermaidCode)
-                            .then(({ svg }) => {
-                                graphDiv.innerHTML = svg;
-                                const svgElem = graphDiv.querySelector('svg');
-                                if (svgElem) {
-                                    const bbox = svgElem.getBBox();
-                                    svgElem.style.height = bbox.height + 'px';
-                                    svgElem.style.maxWidth = '100%';
-                                }
-                                pre.remove(); // Remove the original <pre> block
-                            })
-                            .catch((error) => {
-                                console.error("Error rendering Mermaid:", error);
-                                graphDiv.textContent = "Error rendering Mermaid diagram.";
-                            });
-                    } else {
-                        const code = pre.querySelector('code');
-                        if (code) {
-                            hljs.highlightElement(code);
-                        }
-                    }
-                });
-
-            } catch (error) {
-                console.error('Could not load README.md:', error);
-                document.querySelector('.markdown-body').innerHTML = '<p>Error loading README.md</p>';
+            const response = await fetch('README.md');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+            const markdownText = await response.text();
+
+            const converter = new showdown.Converter({
+                tables: true,
+                strikethrough: true,
+                tasklists: true,
+                simplifiedAutoLink: true,
+                openLinksInNewWindow: true,
+                ghCodeBlocks: true
+            });
+
+            let html = converter.makeHtml(markdownText);
+            document.querySelector('.markdown-body').innerHTML = html;
+
+            mermaid.initialize({ startOnLoad: false });
+
+            const preBlocks = document.querySelectorAll('pre');
+            preBlocks.forEach((pre, index) => {
+                const codeBlock = pre.querySelector('code.language-mermaid');
+                if (codeBlock) {
+                    const mermaidCode = codeBlock.textContent;
+                    const graphDiv = document.createElement('div');
+                    graphDiv.className = 'mermaid';
+                    pre.parentNode.insertBefore(graphDiv, pre);
+                    const graphId = `mermaid-graph-${index}`; // Create a unique ID
+                    mermaid.render(graphId, mermaidCode)
+                        .then(({ svg }) => {
+                            graphDiv.innerHTML = svg;
+                            const svgElem = graphDiv.querySelector('svg');
+                            if (svgElem) {
+                                const bbox = svgElem.getBBox();
+                                svgElem.style.height = bbox.height + 'px';
+                                svgElem.style.maxWidth = '100%';
+                            }
+                            pre.remove(); // Remove the original <pre> block
+                        })
+                        .catch((error) => {
+                            console.error("Error rendering Mermaid:", error);
+                            graphDiv.textContent = "Error rendering Mermaid diagram.";
+                        });
+                } else {
+                    // const code = pre.querySelector('code');
+                    // if (code) {
+                    //     hljs.highlightElement(code);
+                    // }
+                }
+            });
         }
 
         loadMarkdown();
