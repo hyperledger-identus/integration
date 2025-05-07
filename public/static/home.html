@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <head>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"></script>
     <link rel="stylesheet"
@@ -12,12 +13,20 @@
             justify-content: center;
             align-items: center;
         }
+
+        .markdown-body pre code.hljs {
+            display: block;
+            overflow-x: auto;
+            padding: 0em;
+        }
     </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+
 </head>
 
 <body>
     <div class="markdown-body"></div>
-
     <script>
         async function loadMarkdown() {
             const response = await fetch('README.md');
@@ -25,7 +34,6 @@
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const markdownText = await response.text();
-
             const converter = new showdown.Converter({
                 tables: true,
                 strikethrough: true,
@@ -34,12 +42,11 @@
                 openLinksInNewWindow: true,
                 ghCodeBlocks: true
             });
-
             let html = converter.makeHtml(markdownText);
             document.querySelector('.markdown-body').innerHTML = html;
-
-            mermaid.initialize({ startOnLoad: false });
-
+            mermaid.initialize({
+                startOnLoad: false
+            });
             const preBlocks = document.querySelectorAll('pre');
             preBlocks.forEach((pre, index) => {
                 const codeBlock = pre.querySelector('code.language-mermaid');
@@ -48,9 +55,11 @@
                     const graphDiv = document.createElement('div');
                     graphDiv.className = 'mermaid';
                     pre.parentNode.insertBefore(graphDiv, pre);
-                    const graphId = `mermaid-graph-${index}`; // Create a unique ID
+                    const graphId = `mermaid-graph-${index}`;
                     mermaid.render(graphId, mermaidCode)
-                        .then(({ svg }) => {
+                        .then(({
+                            svg
+                        }) => {
                             graphDiv.innerHTML = svg;
                             const svgElem = graphDiv.querySelector('svg');
                             if (svgElem) {
@@ -58,21 +67,21 @@
                                 svgElem.style.height = bbox.height + 'px';
                                 svgElem.style.maxWidth = '100%';
                             }
-                            pre.remove(); // Remove the original <pre> block
+                            pre.remove();
                         })
                         .catch((error) => {
                             console.error("Error rendering Mermaid:", error);
                             graphDiv.textContent = "Error rendering Mermaid diagram.";
                         });
                 } else {
-                    // const code = pre.querySelector('code');
-                    // if (code) {
-                    //     hljs.highlightElement(code);
-                    // }
+                    // Apply Highlight.js to code blocks
+                    const code = pre.querySelector('code');
+                    if (code) {
+                        hljs.highlightElement(code);
+                    }
                 }
             });
         }
-
         loadMarkdown();
     </script>
 </body>
