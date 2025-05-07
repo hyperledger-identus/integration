@@ -2,6 +2,10 @@ name: Integration
 
 run-name: "Integrate: ${{ github.event.client_payload.component }}"
 
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
 on:
   repository_dispatch:
     types:
