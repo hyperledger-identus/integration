@@ -1,0 +1,17 @@
+name: Manual
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: "test"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Dispatch integration
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          repository: hyperledger-identus/integration
+          event-type: integration
+          client-payload: '{"component": "sdk-ts", "version": "4f7974df85e8c0878d6ae51d03b185d4ab2d1d7e" }'

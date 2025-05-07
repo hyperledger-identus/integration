@@ -1,0 +1,40 @@
+name: Run sdk-kmp
+
+on:
+  workflow_call:
+    inputs:
+      env:
+        type: string
+
+jobs:
+  integration:
+    name: "sdk-kmp"
+    runs-on: ubuntu-latest
+    env:
+      ENV: ${{ inputs.ENV }} # base64
+      RUNNER: "sdk-kmp"
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Execute sdk-kmp
+        run: npm run integration -- --runner sdk-kmp
+
+      - name: Stop docker compose
+        run: npm run docker:stop
+
+      - name: Upload partial allure-results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdk-kmp
+          path: './tmp/sdk-kmp'
