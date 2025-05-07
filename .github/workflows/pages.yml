@@ -20,6 +20,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Copy readme
+        run: cp README.md public/static/README.md
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
