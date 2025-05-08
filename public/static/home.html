@@ -55,6 +55,7 @@
                             const svgElem = graphDiv.querySelector('svg');
                             if (svgElem) {
                                 const bbox = svgElem.getBBox();
+                                svgElem.style.maxHeight = bbox.height;
                                 svgElem.style.maxWidth = '100%';
                             }
                             pre.remove();
