@@ -6,6 +6,7 @@
     <script src="showdown.js"></script>
     <link rel="stylesheet" href="github-markdown.css" />
     <link rel="stylesheet" href="highlight.css" />
+    <link rel="preload" href="README.md" as="fetch" crossorigin="anonymous">
     <style>
         .markdown-body pre code.hljs {
             display: block;
@@ -54,7 +55,6 @@
                             const svgElem = graphDiv.querySelector('svg');
                             if (svgElem) {
                                 const bbox = svgElem.getBBox();
-                                svgElem.style.height = bbox.height + 'px';
                                 svgElem.style.maxWidth = '100%';
                             }
                             pre.remove();
