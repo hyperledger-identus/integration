@@ -61,7 +61,8 @@ async function run(trigger: 'check' | 'setup') {
         });
 
         if (restartResponse.status != 200) {
-            throw 'Cloud services failed to synchronize'
+            const err = await restartResponse.text()
+            throw 'Cloud services failed to synchronize:' + err
         }
     }
 }
