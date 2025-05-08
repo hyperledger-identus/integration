@@ -11,13 +11,17 @@ npx tsx cli --component {component} --runner {runner}
 
 ### Components
 
-- cloud-agent
-- mediator
-- sdk-ts
-- sdk-kmp
-- sdk-swift
+Identus components are:
+
+- [cloud-agent](https://github.com/hyperledger-identus/cloud-agent)
+- [mediator](https://github.com/hyperledger-identus/mediator)
+- [sdk-ts](https://github.com/hyperledger-identus/sdk-ts)
+- [sdk-kmp](https://github.com/hyperledger-identus/sdk-kmp)
+- [sdk-swift](https://github.com/hyperledger-identus/sdk-swift)
 
 ### Runners
+
+The runners are the SDKs themselves, which runs the end-to-end tests in order to guarantee the platform compatibility.
 
 - sdk-ts
 - sdk-kmp
@@ -40,7 +44,7 @@ The following table describes the artifact versioning and testing for the integr
 
 ### Cronjob testing
 
-In order to test all latest components there's a weekly job
+In order to test all latest components there's a weekly job.
 
 | environment | cloud-agent | mediator | sdk-ts  | sdk-kmp | sdk-swift |
 | ----------- | ----------- | -------- | ------- | ------- | --------- |
