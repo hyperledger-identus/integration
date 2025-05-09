@@ -10,7 +10,6 @@
     "boxen": "^8.0.1",
     "cli-spinners": "^3.1.0",
     "dotenv": "^16.4.5",
-    "esbuild": "^0.21.5",
     "octokit": "^4.0.2",
     "yargs": "^17.7.2"
   },

@@ -14,11 +14,6 @@ export class TypescriptSdk extends Runner {
 
     readonly runCommand = `npm run test:sdk`
 
-    // helper to run npm commands
-    private async npm(command: string, dir: string = this.testDir): Promise<string> {
-        return await cmd(`npm ${command}`, { cwd: dir })
-    }
-
     protected urls() {
         return {
             MEDIATOR_OOB_URL: process.env.MEDIATOR_OOB_URL!,
@@ -27,20 +22,21 @@ export class TypescriptSdk extends Runner {
     }
 
     protected async prepare() {
-        const options = { cwd: this.testDir }
+        const sdkOptions = { cwd: this.name }
+        const testOptions = { cwd: this.testDir }
 
         const packageJson = readFileSync(`${this.testDir}/package.json`).toString()
         const isOldArtifact = packageJson.includes(this.oldArtifactName)
         const artifactName = isOldArtifact ? this.oldArtifactName : this.artifactName
 
         if (this.build) {
-            await this.npm("install", this.repo)
-            await this.npm("run build", this.repo)
-            await cmd(`npm install ${artifactName}@../..`, options)
+            await cmd("npm install", sdkOptions)
+            await cmd("npm run build", sdkOptions)
+            await cmd(`npm install ${artifactName}@../..`, testOptions)
         } else {
-            await cmd(`npm install ${artifactName}@${this.version}`, options)
+            await cmd(`npm install ${artifactName}@${this.version}`, testOptions)
         }
         
-        await cmd(`npm install`, options)
+        await cmd(`npm install`, testOptions)
     }
 }
