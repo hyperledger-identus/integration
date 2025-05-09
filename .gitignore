@@ -11,3 +11,4 @@ env.json
 /sdk-swift
 /tmp
 /public/static/README.md
+/env

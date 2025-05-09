@@ -1,5 +1,7 @@
+import { writeFileSync } from "fs"
 import { run } from "../run.js"
 
 (async function () {
-    console.info(await run.environment())
+    let env = await run.environment()
+    writeFileSync('env', env)
 })()

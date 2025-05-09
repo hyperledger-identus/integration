@@ -41,7 +41,9 @@ jobs:
           RUN_ID: ${{ github.run_id }}
         run: |
           npm i
-          ENV="$(npm run environment --silent)" && echo "env=$ENV" >> "$GITHUB_OUTPUT"
+          npm run environment
+          ENV="$(cat env)"
+          echo "env=$ENV" >> "$GITHUB_OUTPUT"
           echo "sdk-ts=$(echo $ENV | base64 --decode | jq -r '.runners.["sdk-ts"].enabled')" >> "$GITHUB_OUTPUT"
           echo "sdk-kmp=$(echo $ENV | base64 --decode | jq -r '.runners.["sdk-kmp"].enabled')" >> "$GITHUB_OUTPUT"
           echo "sdk-swift=$(echo $ENV | base64 --decode | jq -r '.runners.["sdk-swift"].enabled')" >> "$GITHUB_OUTPUT"
