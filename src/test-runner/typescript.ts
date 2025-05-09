@@ -1,11 +1,13 @@
 import { Runner } from "./runner.js";
 import { cmd } from "../cmd.js";
+import { readFileSync, readSync } from "fs";
 
 export class TypescriptSdk extends Runner {
     readonly name = "sdk-ts"
     readonly owner = "hyperledger-identus"
     readonly repo = "sdk-ts"
-    readonly artifactName = "@hyperledger/identus-edge-agent-sdk"
+    readonly artifactName = "@hyperledger/identus-sdk"
+    readonly oldArtifactName = "@hyperledger/identus-edge-agent-sdk"
 
     readonly testDir = `${this.repo}/integration-tests/e2e-tests`
     readonly allureResultsDirectory = `${this.testDir}/allure-results`
@@ -27,12 +29,16 @@ export class TypescriptSdk extends Runner {
     protected async prepare() {
         const options = { cwd: this.testDir }
 
+        const packageJson = readFileSync(`${this.testDir}/package.json`).toString()
+        const isOldArtifact = packageJson.includes(this.oldArtifactName)
+        const artifactName = isOldArtifact ? this.oldArtifactName : this.artifactName
+
         if (this.build) {
             await this.npm("install", this.repo)
             await this.npm("run build", this.repo)
-            await cmd(`npm install ${this.artifactName}@../..`, options)
+            await cmd(`npm install ${artifactName}@../..`, options)
         } else {
-            await cmd(`npm install ${this.artifactName}@${this.version}`, options)
+            await cmd(`npm install ${artifactName}@${this.version}`, options)
         }
         
         await cmd(`npm install`, options)

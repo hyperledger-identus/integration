@@ -1,9 +1,9 @@
 
-import * as fs from "fs/promises";
-import * as path from 'path';
+import { readdirSync, readFileSync, writeFileSync } from 'fs';
 import { cmd } from "../cmd.js";
 import { environment, runner, runners } from "../types.js";
 import { slack } from "../slack.js";
+import { join } from 'path';
 
 const githubPage = "https://hyperledger-identus.github.io/integration/"
 
@@ -16,29 +16,25 @@ const htmlTemplate = `<!DOCTYPE html>
 </body>
 </html>`
 
-async function getEnabledRunners(env: environment, callback: (runner: runner) => void) {
-    runners.forEach(async (runner) => {
-        if (env.runners[runner].enabled) {
-            callback(runner)
-        }
-    })
+function getEnabledRunners(env: environment) {
+    return runners.filter((runner) => env.runners[runner].enabled)
 }
 
-async function generateEnvironmentFile(resultsDir: string, env: environment) {
+function generateEnvironmentFile(resultsDir: string, env: environment) {
     const envFilePath = `${resultsDir}/environment.properties`
     const environment = []
     environment.push(`agent: ${env.services.agent.version}`)
     environment.push(`mediator: ${env.services.mediator.version}`)
     environment.push(`prism-node: ${env.services.node.version}`)
 
-    getEnabledRunners(env, (runner) => {
+    getEnabledRunners(env).forEach(runner => {
         environment.push(`${runner}: ${env.runners[runner].version}`)
     })
 
-    await fs.writeFile(envFilePath, environment.join("\n"))
+    writeFileSync(envFilePath, environment.join("\n"))
 }
 
-async function generateExecutorFile(resultsDir: string, env: environment, newReportUrl: string) {
+function generateExecutorFile(resultsDir: string, env: environment, newReportUrl: string) {
     const executorFilePath = `${resultsDir}/executor.json`
     const executorJson = {
         "reportName": `${env.component} Integration`,
@@ -48,17 +44,17 @@ async function generateExecutorFile(resultsDir: string, env: environment, newRep
         "buildName": env.workflow.runId,
         "buildUrl": `https://github.com/hyperledger-identus/integration/actions/runs/${env.workflow.runId}`
     }
-    await fs.writeFile(executorFilePath, JSON.stringify(executorJson, null, 2))
+    writeFileSync(executorFilePath, JSON.stringify(executorJson, null, 2))
 }
 
-async function generateRedirectPage(component: string, nextReportId: number) {
+function generateRedirectPage(component: string, nextReportId: number) {
     const html = htmlTemplate.replace("%PAGE%", `${nextReportId}`)
-    await fs.writeFile(`public/reports/${component}/index.html`, html)
+    writeFileSync(`public/reports/${component}/index.html`, html)
 }
 
-async function getSubfolders(dir: string): Promise<string[]> {
+function getSubfolders(dir: string): string[] {
     try {
-        const entries = await fs.readdir(dir, { withFileTypes: true })
+        const entries = readdirSync(dir, { withFileTypes: true })
         return entries
             .filter((dirent) => dirent.isDirectory())
             .map((dirent) => dirent.name)
@@ -68,18 +64,19 @@ async function getSubfolders(dir: string): Promise<string[]> {
     }
 }
 
-async function postProcessAllure(reportPath: string) {
-    let appJs = (await fs.readFile(`${reportPath}/app.js`)).toString()
+function postProcessAllure(reportPath: string) {
+    let appJs = readFileSync(`${reportPath}/app.js`).toString()
     appJs = appJs.replace(
         `return'                    <a class="link" href="'+a(i(null!=e?s(e,"buildUrl"):e,e))`,
         `return'                    <a class="link" target="_blank" href="'+a(i(null!=e?s(e,"buildUrl"):e,e))`
     )
-    await fs.writeFile(`${reportPath}/app.js`, appJs)
+    writeFileSync(`${reportPath}/app.js`, appJs)
 }
 
 interface TestResult {
     uuid: string;
     status: string;
+    testCaseId: string;
     labels?: Label[];
 }
 
@@ -88,24 +85,56 @@ interface Label {
     value: string;
 }
 
-async function preProcessAllure(resultsDir: string, runner: runner): Promise<boolean> {
-    const files = (await fs.readdir(resultsDir)).filter(f => f.includes("-result.json"))
-    for (const file of files) {
-        const filePath = path.join(resultsDir, file)
-        if (path.extname(file) === '.json') {
-            const fileContent = await fs.readFile(filePath, 'utf-8')
-            const result: TestResult = JSON.parse(fileContent)
-            if (!result.labels) {
-                result.labels = [];
+function preProcessAllure(resultsDir: string, runner: runner): boolean {
+    const results = readdirSync(resultsDir)
+        .filter(file => file.endsWith("result.json"))
+        .map(file => {
+            const filePath = join(resultsDir, file)
+            const fileContent = readFileSync(filePath, 'utf-8')
+            return {
+                filePath: filePath,
+                result: JSON.parse(fileContent) as TestResult
             }
-            result.labels.push({ name: "tag", value: runner });
-            await fs.writeFile(filePath, JSON.stringify(result), 'utf-8');
-            if (result.status === 'failed' || result.status == 'broken') {
-                return false
+        })
+
+    let passed = true
+    let allResults = new Map()
+
+    // process
+    results.forEach(entry => {
+        if (!entry.result.labels) {
+            entry.result.labels = [];
+        }
+        const suiteLabel = entry.result.labels.find(label => label.name === 'suite');
+        if (suiteLabel) {
+            suiteLabel.value = runner;
+        } else {
+            entry.result.labels.push({ name: 'suite', value: runner });
+        }
+
+        // Aggregate features under a parent epic (for the Behavior tab)
+        const featureLabel = entry.result.labels.find(label => label.name === 'feature');
+        if (featureLabel) {
+            // Add an epic label
+            const parentEpicLabel =entry. result.labels.find(label => label.name === 'epic');
+            if (parentEpicLabel) {
+                parentEpicLabel.value = runner;
+            } else {
+                entry.result.labels.push({ name: 'epic', value: runner });
             }
         }
-    }
-    return true
+
+        writeFileSync(entry.filePath, JSON.stringify(entry.result), 'utf-8');
+        
+        if (allResults.get(entry.result.testCaseId) == 'passed') {
+            return
+        }
+        allResults.set(entry.result.testCaseId, entry.result.status)
+    })
+    const failed =  Array.from(allResults.values()).find(v => {
+        return v == 'failed' || v == 'broken' || v == 'unknown'
+    })
+    return !failed
 }
 
 async function run() {
@@ -125,18 +154,18 @@ async function run() {
 
     let executionPassed = true
     // partial results processor
-    await getEnabledRunners(env, async (runner) => {
+    getEnabledRunners(env).forEach(async (runner) => {
         const partialResultDir: string = `tmp/${runner}`
         try {
-            executionPassed = executionPassed && await preProcessAllure(partialResultDir, runner)
+            executionPassed = executionPassed && preProcessAllure(partialResultDir, runner)
             await cmd(`cp -r ${partialResultDir}/* ${tmpResultsDir}`)
         } catch (e) {
-            console.error(`Could not find the '${partialResultDir}' allure results`)
+            console.error(`Could not find the '${partialResultDir}' allure results`, e)
         }
     })
 
     // delete extra reports
-    const reportDirSubfolders: string[] = await getSubfolders(componentReportDir)
+    const reportDirSubfolders: string[] = getSubfolders(componentReportDir)
 
     // history dirs mapped to number ('./0', './1' ... './n')
     const historyDirs: number[] = reportDirSubfolders

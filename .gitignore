@@ -3,11 +3,11 @@ node_modules
 
 # misc
 env.json
-scripts
+/scripts
 
 # sdks
-sdk-ts
-sdk-kmp
-sdk-swift
-tmp
-
+/sdk-ts
+/sdk-kmp
+/sdk-swift
+/tmp
+/public/static/README.md
