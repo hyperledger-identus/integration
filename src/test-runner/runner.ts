@@ -24,7 +24,9 @@ export abstract class Runner {
         if (!this.build) {
             this.version = `v${this.version}`
             // await cmd(`git fetch --depth 1 origin refs/tags/${this.version}`)
-            await cmd (`git fetch origin tag ${this.version}`, { cwd: this.repo })
+            await cmd(`git fetch origin tag ${this.version}`, { cwd: this.repo })
+        } else {
+            await cmd(`git fetch origin ${this.version}`, { cwd: this.repo })
         }
         await cmd(`git checkout ${this.version}`, { cwd: this.repo })
     }
