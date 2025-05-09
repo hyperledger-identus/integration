@@ -13,6 +13,8 @@ jobs:
     env:
       ENV: ${{ inputs.ENV }} # base64
       RUNNER: "sdk-ts"
+      AGENT_URL: ${{ secrets.AGENT_URL }}
+      MEDIATOR_OOB_URL: ${{ secrets.MEDIATOR_OOB_URL }}
       SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
 
     steps:
