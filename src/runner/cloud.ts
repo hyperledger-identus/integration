@@ -20,17 +20,7 @@ async function run(trigger: 'check' | 'setup') {
         headers
     })
 
-    // fetch existing versions
-    const mappedVersions = (await currentEnv.text())
-        .trim()
-        .split("\n")
-        .map(entry => entry.trim())
-        .filter(entry => !entry.startsWith('#'))
-        .map(entry => entry.split("="))
-        .reduce((acc: Record<string, string>, [key, value]) => {
-            acc[key] = value
-            return acc
-        }, {})
+    const mappedVersions = JSON.parse(await currentEnv.text()).env
 
     if (trigger == 'check') {
         console.info('Cloud Agent Version', mappedVersions['CLOUD_AGENT_VERSION'])
