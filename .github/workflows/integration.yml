@@ -70,6 +70,7 @@ jobs:
       - name: Setup environment
         run: |
           npm install
+          npm run cloud:check
           npm run cloud:setup
 
   sdk-ts:
