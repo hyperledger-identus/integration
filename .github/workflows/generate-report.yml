@@ -78,14 +78,14 @@ jobs:
 
       - name: Update reports
         run: |
-          git add reports
+          git add public
           git commit -S -s -m "chore: update '${{ inputs.component }}' reports"
           git push
 
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './reports'
+          path: './public'
 
   update-site:
     needs: report
