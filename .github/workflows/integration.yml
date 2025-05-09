@@ -55,7 +55,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ENV: ${{ needs.main.outputs.env }}
-      CLOUD_TOKEN: ${{ secrets.CLOUD_SERVICE_TOKEN }}
+      CLOUD_SERVICE_TOKEN: ${{ secrets.CLOUD_SERVICE_TOKEN }}
       CLOUD_SERVICE_URL: ${{ secrets.CLOUD_SERVICE_URL }}
       CLOUD_SERVICE_PROJECT: ${{ secrets.CLOUD_SERVICE_PROJECT }}
 
