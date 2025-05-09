@@ -52,7 +52,7 @@ jobs:
   cloud-setup:
     needs: main
     name: Cloud setup
-    runs-on: ubuntu
+    runs-on: ubuntu-latest
     env:
       ENV: ${{ needs.main.outputs.env }}
       CLOUD_TOKEN: ${{ secrets.CLOUD_SERVICE_TOKEN }}
