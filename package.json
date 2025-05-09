@@ -27,6 +27,7 @@
     "docker:start": "npx tsx src/cli/docker.ts start",
     "docker:stop": "npx tsx src/cli/docker.ts stop",
     "cloud:setup": "npx tsx src/cli/cloud.ts setup",
+    "cloud:check": "npx tsx src/cli/cloud.ts check",
     "integration": "npx tsx src/cli/integration",
     "report": "npx tsx src/cli/report"
   }
