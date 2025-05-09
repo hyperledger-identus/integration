@@ -3,6 +3,9 @@ name: Manual
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   test:
     name: "test"
