@@ -40,7 +40,7 @@ jobs:
           VERSION: ${{ github.event.client_payload.version }}
           RUN_ID: ${{ github.run_id }}
         run: |
-          npm i
+          npm install
           npm run environment
           ENV="$(cat env)"
           echo "env=$ENV" >> "$GITHUB_OUTPUT"
@@ -68,7 +68,9 @@ jobs:
           node-version: 20
 
       - name: Setup environment
-        run: npm run cloud:setup
+        run: |
+          npm install
+          npm run cloud:setup
 
   sdk-ts:
     needs: [main, cloud-setup]
