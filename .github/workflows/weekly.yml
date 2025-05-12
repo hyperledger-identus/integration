@@ -5,6 +5,9 @@ on:
   schedule:
     - cron: 0 3 * * 6
 
+permissions:
+  contents: write
+  
 jobs:
   weekly:
     name: "Trigger 'weekly' integration"
