@@ -82,6 +82,9 @@ jobs:
           git commit -S -s -m "chore: update '${{ inputs.component }}' reports"
           git push
 
+      - name: Copy readme
+        run: cp README.md public/static/README.md
+
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
