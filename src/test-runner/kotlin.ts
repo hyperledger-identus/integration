@@ -1,6 +1,6 @@
-import { Runner } from "./runner.js";
+import { TestRunner } from "./test-runner.js";
 
-export class KotlinSdk extends Runner {
+export class KotlinSdk extends TestRunner {
     readonly name = "sdk-kmp"
     readonly owner = "hyperledger-identus"
     readonly repo = "sdk-kmp"
@@ -11,7 +11,7 @@ export class KotlinSdk extends Runner {
 
     readonly runCommand = ""
 
-    protected urls(): { AGENT_URL: string; MEDIATOR_OOB_URL: string; } {
+    protected sdkEnv(): { AGENT_URL: string; MEDIATOR_OOB_URL: string; } {
         throw new Error("Method not implemented.");
     }
 
@@ -19,5 +19,9 @@ export class KotlinSdk extends Runner {
     }
 
     protected async run(): Promise<void> {
+    }
+
+    protected getTagFromVersion(): string {
+        return this.version
     }
 }

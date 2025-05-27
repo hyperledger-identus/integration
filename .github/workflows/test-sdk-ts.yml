@@ -1,16 +1,14 @@
-name: Weekly
+name: Manual ts
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: 0 21 * * 6
 
 permissions:
   contents: write
 
 jobs:
-  weekly:
-    name: "Trigger 'weekly' integration"
+  test:
+    name: "test"
     runs-on: ubuntu-latest
 
     steps:
@@ -19,4 +17,4 @@ jobs:
         with:
           repository: hyperledger-identus/integration
           event-type: integration
-          client-payload: '{"component": "weekly", "version": "" }'
+          client-payload: '{"component": "sdk-ts", "version": "d950b5f8e5fb72696399a0c10937192213f06a09" }'

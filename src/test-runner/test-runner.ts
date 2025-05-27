@@ -1,7 +1,7 @@
 import { runner } from "../types.js";
 import { cmd } from "../cmd.js";
 
-export abstract class Runner {
+export abstract class TestRunner {
     protected abstract readonly runCommand: string
     protected abstract readonly testDir: string
     protected abstract readonly artifactName: string
@@ -22,7 +22,7 @@ export abstract class Runner {
     protected async cloneRepository() {
         await cmd(`git clone --depth=1 https://github.com/${this.owner}/${this.repo}.git`)
         if (!this.build) {
-            this.version = `v${this.version}`
+            this.version = this.getTagFromVersion()
             // await cmd(`git fetch --depth 1 origin refs/tags/${this.version}`)
             await cmd(`git fetch origin tag ${this.version}`, { cwd: this.repo })
         } else {
@@ -48,10 +48,11 @@ export abstract class Runner {
     protected env() {
         return {
             ...process.env,
-            ...this.urls()
+            ...this.sdkEnv()
         }
     }
 
-    protected abstract urls(): { AGENT_URL: string, MEDIATOR_OOB_URL: string }
+    protected abstract getTagFromVersion(): string // modifies tag if necessary
+    protected abstract sdkEnv(): any
     protected abstract prepare(): Promise<void>
 }

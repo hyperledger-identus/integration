@@ -1,8 +1,8 @@
-import { Runner } from "./runner.js";
+import { TestRunner } from "./test-runner.js";
 import { cmd } from "../cmd.js";
 import { readFileSync, readSync } from "fs";
 
-export class TypescriptSdk extends Runner {
+export class TypescriptSdk extends TestRunner {
     readonly name = "sdk-ts"
     readonly owner = "hyperledger-identus"
     readonly repo = "sdk-ts"
@@ -14,7 +14,7 @@ export class TypescriptSdk extends Runner {
 
     readonly runCommand = `npm run test:sdk`
 
-    protected urls() {
+    protected sdkEnv() {
         return {
             MEDIATOR_OOB_URL: process.env.MEDIATOR_OOB_URL!,
             AGENT_URL: process.env.AGENT_URL! + (process.env.AGENT?.endsWith("/") ? "" : "/")
@@ -38,5 +38,9 @@ export class TypescriptSdk extends Runner {
         }
         
         await cmd(`npm install`, testOptions)
+    }
+
+    protected getTagFromVersion(): string {
+        return `v${this.version}`
     }
 }

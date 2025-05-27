@@ -91,7 +91,7 @@ jobs:
 
   sdk-swift:
     needs: [main, cloud-setup]
-    if: false # needs.main.outputs.sdk-swift  == 'true'
+    if: needs.main.outputs.sdk-swift  == 'true'
     secrets: inherit
     uses: ./.github/workflows/sdk-swift.yml
     with:

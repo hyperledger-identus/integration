@@ -1,4 +1,4 @@
-name: Manual
+name: Manual swift
 
 on:
   workflow_dispatch:
@@ -17,4 +17,4 @@ jobs:
         with:
           repository: hyperledger-identus/integration
           event-type: integration
-          client-payload: '{"component": "sdk-ts", "version": "d950b5f8e5fb72696399a0c10937192213f06a09" }'
+          client-payload: '{"component": "sdk-swift", "version": "16e9ebd30b215e0a36ee999a9a9b7961dfcdccc3" }'

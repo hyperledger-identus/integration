@@ -2,7 +2,7 @@ import * as dotenv from "dotenv"
 import { execSync } from 'child_process'
 import { cmd } from "../cmd.js"
 import { environment, runner, runnerConfig } from "../types.js"
-import { Runner } from "../test-runner/runner.js"
+import { TestRunner } from "../test-runner/test-runner.js"
 import { SwiftSdk } from '../test-runner/swift.js'
 import { KotlinSdk } from '../test-runner/kotlin.js'
 import { TypescriptSdk } from '../test-runner/typescript.js'
@@ -13,7 +13,7 @@ const availableRunners = [
     new SwiftSdk()
 ] as const
 
-function getRunner(requestedRunner: runner, runnerConfig: runnerConfig): Runner {
+function getRunner(requestedRunner: runner, runnerConfig: runnerConfig): TestRunner {
     let runner = availableRunners.find((runner) => runner.name == requestedRunner)
     if (!runner) {
         throw new Error('Element not found')
@@ -23,7 +23,7 @@ function getRunner(requestedRunner: runner, runnerConfig: runnerConfig): Runner 
     return runner
 }
 
-async function runIntegration(sdk: Runner) {
+async function runIntegration(sdk: TestRunner) {
     console.info(`[${sdk.name}] runner started`)
     try {
         await sdk.execute()
@@ -50,7 +50,7 @@ async function run(requestedRunner: runner) {
     cmd(`rm -rf tmp`)
 
     // setup runner
-    const runner: Runner = getRunner(requestedRunner, runnerConfig)
+    const runner: TestRunner = getRunner(requestedRunner, runnerConfig)
     await runner.cleanup()
 
     await runIntegration(runner)
