@@ -37,7 +37,7 @@ export abstract class TestRunner {
         console.log(`[${this.name}] preparing dependencies`)
         await this.prepare()
         console.log(`[${this.name}] starting tests`)
-        await cmd(this.runCommand, { cwd: this.testDir, env: this.env() })
+        await cmd(this.runCommand, { maxBuffer: 10 * 1024 * 1024, cwd: this.testDir, env: this.env() })
     }
 
     async moveAllureResultsToTmp(requestedRunner: string) {
