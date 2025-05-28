@@ -17,4 +17,4 @@ jobs:
         with:
           repository: hyperledger-identus/integration
           event-type: integration
-          client-payload: '{"component": "sdk-swift", "version": "16e9ebd30b215e0a36ee999a9a9b7961dfcdccc3" }'
+          client-payload: '{"component": "sdk-swift", "version": "f63b8a97860415820a7106677d6e7af7cf0fde99" }'
