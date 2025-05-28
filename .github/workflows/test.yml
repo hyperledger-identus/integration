@@ -1,0 +1,35 @@
+name: Manual test
+
+on:
+  workflow_dispatch:
+    inputs:
+      component:
+        description: 'service to be tested'
+        required: true
+        type: choice
+        options:
+        - sdk-ts
+        - sdk-swift
+        - sdk-kmp
+        - cloud-agent
+        - mediator
+      version:
+        description: 'Tag or SHA'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    name: "test"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Dispatch integration
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          repository: hyperledger-identus/integration
+          event-type: integration
+          client-payload: '{"component": "${{ github.event.inputs.component }}", "version": "${{ github.event.inputs.version }}" }'
