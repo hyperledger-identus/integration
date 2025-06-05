@@ -6,7 +6,7 @@ const isCi = process.env.CI ? true : false
 async function execute(cmd: string, options?: ExecOptions): Promise<string> {
     if (!options) options = { env: process.env }
 
-    const spinner = createSpinner(cmd)
+    const spinner = createSpinner()
     console.info("cmd:", cmd)
 
     return await new Promise<string>((resolve, reject) => {
@@ -30,7 +30,7 @@ async function execute(cmd: string, options?: ExecOptions): Promise<string> {
     })
 }
 
-function createSpinner(cmd: string): NodeJS.Timeout | undefined {
+function createSpinner(): NodeJS.Timeout | undefined {
     if (isDebug || isCi) return
 
     var i = 0
