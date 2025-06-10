@@ -32,6 +32,7 @@ jobs:
 
       - name: Download sdk-ts report
         if: inputs.sdk-ts
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: sdk-ts
@@ -41,6 +42,7 @@ jobs:
 
       - name: Download sdk-kmp report
         if: inputs.sdk-kmp
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: sdk-kmp
@@ -50,6 +52,7 @@ jobs:
           
       - name: Download sdk-swift
         if: inputs.sdk-swift
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: sdk-swift

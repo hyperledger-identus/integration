@@ -101,7 +101,7 @@ jobs:
     needs: [main, sdk-ts, sdk-kmp, sdk-swift]
     if: always()
     secrets: inherit
-    uses: ./.github/workflows/generate-report.yml
+    uses: ./.github/workflows/report.yml
     permissions:
       pages: write
       id-token: write

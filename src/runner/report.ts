@@ -97,7 +97,6 @@ function preProcessAllure(resultsDir: string, runner: runner): boolean {
             }
         })
 
-    let passed = true
     let allResults = new Map()
 
     // process
@@ -116,7 +115,7 @@ function preProcessAllure(resultsDir: string, runner: runner): boolean {
         const featureLabel = entry.result.labels.find(label => label.name === 'feature');
         if (featureLabel) {
             // Add an epic label
-            const parentEpicLabel =entry. result.labels.find(label => label.name === 'epic');
+            const parentEpicLabel = entry.result.labels.find(label => label.name === 'epic');
             if (parentEpicLabel) {
                 parentEpicLabel.value = runner;
             } else {
@@ -125,13 +124,13 @@ function preProcessAllure(resultsDir: string, runner: runner): boolean {
         }
 
         writeFileSync(entry.filePath, JSON.stringify(entry.result), 'utf-8');
-        
+
         if (allResults.get(entry.result.testCaseId) == 'passed') {
             return
         }
         allResults.set(entry.result.testCaseId, entry.result.status)
     })
-    const failed =  Array.from(allResults.values()).find(v => {
+    const failed = Array.from(allResults.values()).find(v => {
         return v == 'failed' || v == 'broken' || v == 'unknown'
     })
     return !failed
@@ -160,6 +159,7 @@ async function run() {
             executionPassed = executionPassed && preProcessAllure(partialResultDir, runner)
             await cmd(`cp -r ${partialResultDir}/* ${tmpResultsDir}`)
         } catch (e) {
+            executionPassed = false
             console.error(`Could not find the '${partialResultDir}' allure results`, e)
         }
     })
@@ -196,13 +196,13 @@ async function run() {
     const externalReportUrl = `${githubPage}${env.component}/${nextReportId}`
 
     // create environment files
-    await generateEnvironmentFile(tmpResultsDir, env)
-    await generateExecutorFile(tmpResultsDir, env, innerReportUrl)
+    generateEnvironmentFile(tmpResultsDir, env)
+    generateExecutorFile(tmpResultsDir, env, innerReportUrl)
 
     // generate allure report
     await cmd(`npx allure generate ${tmpResultsDir} -o ${componentReportDir}/${nextReportId}`)
-    await postProcessAllure(`${componentReportDir}/${nextReportId}`)
-    await generateRedirectPage(env.component, nextReportId)
+    postProcessAllure(`${componentReportDir}/${nextReportId}`)
+    generateRedirectPage(env.component, nextReportId)
 
     // update latest history for the component
     await cmd(`cp -r ${componentReportDir}/${nextReportId}/history/* ${componentLastHistory}`)
