@@ -157,7 +157,7 @@ async function run() {
         const partialResultDir: string = `tmp/${runner}`
         try {
             executionPassed = executionPassed && preProcessAllure(partialResultDir, runner)
-            await cmd(`cp -r ${partialResultDir}/* ${tmpResultsDir}`)
+            await cmd(`cp -r ${partialResultDir}/. ${tmpResultsDir}`)
         } catch (e) {
             executionPassed = false
             console.error(`Could not find the '${partialResultDir}' allure results`, e)
@@ -186,7 +186,7 @@ async function run() {
     const nextReportId: number = historyDirs[historyDirs.length - 1] + 1 || 1
     try {
         // copy latest history for generation
-        await cmd(`cp -r ${componentLastHistory}/* ${tmpResultsDir}/history`)
+        await cmd(`cp -r ${componentLastHistory}/. ${tmpResultsDir}/history`)
     } catch (_) {
         console.warn("History not found, skipping.")
     }
@@ -205,7 +205,7 @@ async function run() {
     generateRedirectPage(env.component, nextReportId)
 
     // update latest history for the component
-    await cmd(`cp -r ${componentReportDir}/${nextReportId}/history/* ${componentLastHistory}`)
+    await cmd(`cp -r ${componentReportDir}/${nextReportId}/history/. ${componentLastHistory}`)
 
     // notify slack if execution failed
     if (!executionPassed) {

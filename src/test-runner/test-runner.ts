@@ -33,16 +33,16 @@ export abstract class TestRunner {
 
     async execute() {
         console.log(`[${this.name}] cloning repository`)
-        await this.cloneRepository()
+        // await this.cloneRepository()
         console.log(`[${this.name}] preparing dependencies`)
-        await this.prepare()
+        // await this.prepare()
         console.log(`[${this.name}] starting tests`)
-        await cmd(this.runCommand, { maxBuffer: 10 * 1024 * 1024, cwd: this.testDir, env: this.env() })
+        await cmd(this.runCommand, { cwd: this.testDir, env: this.env() })
     }
 
     async moveAllureResultsToTmp(requestedRunner: string) {
         await cmd(`mkdir -p tmp/${requestedRunner}`)
-        await cmd(`cp -r ${this.allureResultsDirectory}/* tmp/${requestedRunner}`)
+        await cmd(`cp -r ${this.allureResultsDirectory}/. tmp/${requestedRunner}`)
     }
 
     protected env() {

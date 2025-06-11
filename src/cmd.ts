@@ -1,32 +1,50 @@
-import { exec, ExecOptions } from "child_process";
+import { spawn, SpawnOptions } from "child_process"
 
 const isDebug = process.env.DEBUG ? true : false
 const isCi = process.env.CI ? true : false
-
-async function execute(cmd: string, options?: ExecOptions): Promise<string> {
+async function execute(cmd: string, options?: SpawnOptions): Promise<string> {
     if (!options) options = { env: process.env }
 
     const spinner = createSpinner()
     console.info("cmd:", cmd)
 
     return await new Promise<string>((resolve, reject) => {
-        const runner = exec(cmd, options, (error, stdout) => {
+        const [command, ...args] = cmd.split(' ')
+        const runner = spawn(command, args, options)
+
+        let stdout = ''
+        let stderr = ''
+
+        runner.stdout?.on('data', (data) => {
+            const chunk = data.toString()
+            stdout += chunk
+            if (isDebug || isCi) {
+                process.stdout.write(chunk)
+            }
+        })
+
+        runner.stderr?.on('data', (data) => {
+            const chunk = data.toString()
+            stderr += chunk
+            if (isDebug || isCi) {
+                process.stderr.write(chunk)
+            }
+        })
+
+        runner.on('error', (error) => {
             clearSpinner(spinner)
-            if (error) {
-                reject(error)
+            reject(error)
+        })
+
+        runner.on('close', (code) => {
+            clearSpinner(spinner)
+            if (code !== 0) {
+                const error = new Error(`Command failed with exit code ${code}`) as any
+                reject(error.sdterr)
             } else {
                 resolve(stdout)
             }
-        });
-
-        if (isDebug || isCi) {
-            runner.stdout?.on('data', function (data) {
-                process.stdout.write(data)
-            });
-            runner.stderr?.on('data', function (data) {
-                process.stderr.write(data)
-            })
-        }
+        })
     })
 }
 
@@ -35,12 +53,12 @@ function createSpinner(): NodeJS.Timeout | undefined {
 
     var i = 0
     return setInterval(function () {
-        process.stdout.clearLine(-1);
-        process.stdout.cursorTo(0);
-        i = (i + 1) % 4;
+        process.stdout.clearLine(-1)
+        process.stdout.cursorTo(0)
+        i = (i + 1) % 4
         var dots = new Array(i + 1).join(".")
         process.stdout.write(dots)
-    }, 300);
+    }, 300)
 }
 
 function clearSpinner(spinner: NodeJS.Timeout | undefined) {
@@ -51,4 +69,4 @@ function clearSpinner(spinner: NodeJS.Timeout | undefined) {
     process.stdout.cursorTo(0)
 }
 
-export const cmd = (cmd: string, options?: ExecOptions) => execute(cmd, options)
+export const cmd = (cmd: string, options?: SpawnOptions) => execute(cmd, options)
