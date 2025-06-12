@@ -4,6 +4,7 @@ const isDebug = process.env.DEBUG ? true : false
 const isCi = process.env.CI ? true : false
 async function execute(cmd: string, options?: SpawnOptions): Promise<string> {
     if (!options) options = { env: process.env }
+    options.shell = true
 
     const spinner = createSpinner()
     console.info("cmd:", cmd)
