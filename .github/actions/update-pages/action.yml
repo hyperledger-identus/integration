@@ -24,7 +24,9 @@ runs:
 
     - name: Copy readme
       shell: sh
-      run: cp README.md public/static/README.md
+      run: |
+        mkdir -p public/static
+        cp README.md public/static/README.md
 
     - name: Upload pages artifact
       uses: actions/upload-pages-artifact@v3
