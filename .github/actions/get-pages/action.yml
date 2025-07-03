@@ -19,7 +19,7 @@ runs:
   steps:
     - name: Read last run id
       id: read_run_id
-      shell: bash
+      shell: sh
       run: |
         if [ -f "./history/lastrun" ]; then
           LAST_RUN_ID=$(cat ./latest-history/lastrun)
@@ -42,7 +42,7 @@ runs:
 
     - name: Extract artifact
       if: steps.download-artifact.outcome == 'success'
-      shell: bash
+      shell: sh
       run: |
         mkdir -p ./public
         tar -xf ${{ inputs.artifact-path }}/artifact.tar -C ./public

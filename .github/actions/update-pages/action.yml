@@ -23,7 +23,7 @@ runs:
         git_tag_gpgsign: false
 
     - name: Copy readme
-      shell: bash
+      shell: sh
       run: cp README.md public/static/README.md
 
     - name: Upload pages artifact
@@ -33,7 +33,7 @@ runs:
         retention-days: 90
 
     - name: Update history
-      shell: bash
+      shell: sh
       run: |
         echo "${{ github.run_id }}" > "./latest-history/lastrun"
         git add latest-history
