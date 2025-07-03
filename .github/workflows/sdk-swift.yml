@@ -1,0 +1,44 @@
+name: Run sdk-swift
+
+on:
+  workflow_call:
+    inputs:
+      env:
+        type: string
+
+jobs:
+  integration:
+    name: "sdk-swift"
+    runs-on: macos-latest
+    env:
+      ENV: ${{ inputs.ENV }}
+      RUNNER: "sdk-swift"
+      AGENT_URL: ${{ secrets.AGENT_URL }}
+      MEDIATOR_OOB_URL: ${{ secrets.MEDIATOR_OOB_URL }}
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set xcode 16.2
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Execute sdk-swift
+        run: npm run integration -- --runner sdk-swift
+
+      - name: Upload partial allure-results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdk-swift
+          path: './tmp/sdk-swift'

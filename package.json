@@ -1,0 +1,33 @@
+{
+  "name": "integration",
+  "version": "1.0.0",
+  "description": "Integration repository for Identus components",
+  "type": "module",
+  "author": "Allain Magyar",
+  "license": "ISC",
+  "dependencies": {
+    "@actions/artifact": "^2.2.1",
+    "boxen": "^8.0.1",
+    "cli-spinners": "^3.1.0",
+    "dotenv": "^16.4.5",
+    "octokit": "^4.0.2",
+    "yargs": "^17.7.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.0",
+    "@types/yargs": "^17.0.33",
+    "allure-commandline": "^2.30.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.17.0",
+    "typescript": "^5.5.4"
+  },
+  "scripts": {
+    "environment": "npx tsx src/cli/environment",
+    "docker:start": "npx tsx src/cli/docker.ts start",
+    "docker:stop": "npx tsx src/cli/docker.ts stop",
+    "cloud:setup": "npx tsx src/cli/cloud.ts setup",
+    "cloud:check": "npx tsx src/cli/cloud.ts check",
+    "integration": "npx tsx src/cli/integration",
+    "report": "npx tsx src/cli/report"
+  }
+}

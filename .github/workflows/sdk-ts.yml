@@ -1,0 +1,47 @@
+name: Run sdk-ts
+
+on:
+  workflow_call:
+    inputs:
+      env:
+        type: string
+
+jobs:
+  integration:
+    name: "sdk-ts"
+    runs-on: ubuntu-latest
+    env:
+      ENV: ${{ inputs.ENV }} # base64
+      RUNNER: "sdk-ts"
+      AGENT_URL: ${{ secrets.AGENT_URL }}
+      MEDIATOR_OOB_URL: ${{ secrets.MEDIATOR_OOB_URL }}
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install rust
+        run: curl https://sh.rustup.rs -sSf | sh -s -- -y
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Execute sdk-ts
+        run: npm run integration -- --runner sdk-ts
+
+      - name: Upload partial allure-results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdk-ts
+          path: './tmp/sdk-ts'

@@ -1,0 +1,37 @@
+name: Update readme
+
+run-name: Update github pages readme
+
+on:
+  workflow_dispatch:
+
+jobs:
+  update-site:
+    name: Update report readme
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download github pages
+        uses: ./.github/actions/download-and-extract
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update github pages
+        uses: ./.github/actions/update-pages
+        with:
+          gpg-private-key: ${{ secrets.HYP_BOT_GPG_PRIVATE }}
+          gpg-passphrase: ${{ secrets.HYP_BOT_GPG_PASSWORD }}
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

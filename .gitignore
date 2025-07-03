@@ -1,0 +1,15 @@
+node_modules
+.env
+
+# misc
+env.json
+/scripts
+
+# sdks
+/sdk-ts
+/sdk-kmp
+/sdk-swift
+/tmp
+/public/static/README.md
+/env
+logs

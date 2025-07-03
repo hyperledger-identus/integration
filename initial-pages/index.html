@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="static/bulma.css">
+  <link rel="icon" href="static/identus.svg" type="image/svg+xml">
+  <script src="static/main.js"></script>
+  <title>Identus Integration</title>
+  <style>
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+
+    #content-iframe {
+      width: 100%;
+      padding-top: 58px;
+      height: 100%;
+      border: none;
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+
+    #content-iframe {
+      width: 100%;
+      padding-top: 58px;
+      height: 100%;
+      border: none;
+    }
+
+    @media only screen and (max-width: 1024px) {
+      .navbar-menu {
+        max-height: 0;
+        overflow: hidden;
+        opacity: 0;
+        transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+      }
+
+      .navbar-menu.is-active {
+        max-height: 100vh;
+        opacity: 1;
+      }
+
+      /* Dropdown container */
+      .navbar-item.has-dropdown .navbar-dropdown {
+        max-height: 0;
+        overflow: hidden;
+        opacity: 0;
+        transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+      }
+
+      .navbar-item.has-dropdown.is-active .navbar-dropdown {
+        opacity: 1;
+      }
+
+      .navbar-dropdown .navbar-item {
+        opacity: 1;
+        transition: opacity 0.3s ease-in-out;
+      }
+
+      .navbar-dropdown.is-boxed {
+        padding: 0;
+        border: none;
+        box-shadow: none;
+        background-color: transparent;
+      }
+
+      .navbar-dropdown .navbar-item {
+        padding: 0.375rem 1rem;
+        margin: 0;
+        opacity: 1;
+        transition: opacity 0.3s ease-in-out;
+      }
+    }
+  </style>
+</head>
+
+<body style="display: none">
+  <nav class="navbar is-transparent is-fixed-top" role="navigation" aria-label="main navigation">
+    <div class="navbar-brand">
+      <a href="/" class="navbar-item">
+        <img src="static/identus.svg" alt="Identus">
+      </a>
+
+      <div role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbar">
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+      </div>
+    </div>
+
+    <div id="navbar" class="navbar-menu">
+      <div class="navbar-start">
+        <a href="/releases" class="navbar-item">Releases</a>
+        <a href="/weekly" class="navbar-item">Weekly</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link">Services</a>
+          <div class="navbar-dropdown is-boxed">
+            <a href="/cloud-agent" class="navbar-item">Cloud Agent</a>
+            <a href="/mediator" class="navbar-item">Mediator</a>
+            <a href="/prism-node" class="navbar-item">Prism Node</a>
+          </div>
+        </div>
+
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link">SDKs</a>
+          <div class="navbar-dropdown is-boxed">
+            <a href="/typescript" class="navbar-item">Typescript</a>
+            <a href="/swift" class="navbar-item">Swift</a>
+            <a href="/kotlin" class="navbar-item">Kotlin</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+  <iframe id="content-iframe" src=""></iframe>
+</body>
+
+</html>

@@ -1,0 +1,48 @@
+name: 'Download github pages'
+description: 'Download previous pages artifact and extracts'
+
+inputs:
+  artifact-name:
+    description: 'The name of the artifact to download.'
+    required: true
+    default: 'github-pages'
+  artifact-path:
+    description: 'The path to download the artifact to.'
+    required: true
+    default: './tmp'
+  github-token:
+    description: 'The GitHub token for authentication.'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Read last run id
+      id: read_run_id
+      shell: bash
+      run: |
+        if [ -f "./history/lastrun" ]; then
+          LAST_RUN_ID=$(cat ./latest-history/lastrun)
+          echo "Found last run ID: $LAST_RUN_ID"
+          echo "run_id_from_file=$LAST_RUN_ID" >> $GITHUB_OUTPUT
+        else
+          echo "lastrun file not found."
+          echo "run_id_from_file=" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Download pages artifact
+      id: download-artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ inputs.artifact-path }}
+        run-id: ${{ steps.read_run_id.outputs.run_id_from_file }}
+        github-token: ${{ inputs.github-token }}
+      continue-on-error: true
+
+    - name: Extract artifact
+      if: steps.download-artifact.outcome == 'success'
+      shell: bash
+      run: |
+        mkdir -p ./public
+        tar -xf ${{ inputs.artifact-path }}/artifact.tar -C ./public

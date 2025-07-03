@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+
+<head>
+    <script src="highlight.js"></script>
+    <script src="mermaid.js"></script>
+    <script src="showdown.js"></script>
+    <link rel="stylesheet" href="github-markdown.css" />
+    <link rel="stylesheet" href="highlight.css" />
+    <link rel="preload" href="README.md" as="fetch" crossorigin="anonymous">
+    <style>
+        .markdown-body pre code.hljs {
+            display: block;
+            overflow-x: auto;
+            padding: 0em;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="markdown-body"></div>
+    <script>
+        async function loadMarkdown() {
+            const response = await fetch('README.md');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const markdownText = await response.text();
+            const converter = new showdown.Converter({
+                tables: true,
+                strikethrough: true,
+                tasklists: true,
+                simplifiedAutoLink: true,
+                openLinksInNewWindow: true,
+                ghCodeBlocks: true
+            });
+            let html = converter.makeHtml(markdownText);
+            document.querySelector('.markdown-body').innerHTML = html;
+            mermaid.initialize({
+                startOnLoad: false
+            });
+            const preBlocks = document.querySelectorAll('pre');
+            preBlocks.forEach((pre, index) => {
+                const codeBlock = pre.querySelector('code.language-mermaid');
+                if (codeBlock) {
+                    const mermaidCode = codeBlock.textContent;
+                    const graphDiv = document.createElement('div');
+                    graphDiv.className = 'mermaid';
+                    pre.parentNode.insertBefore(graphDiv, pre);
+                    const graphId = `mermaid-graph-${index}`;
+                    mermaid.render(graphId, mermaidCode)
+                        .then(({
+                            svg
+                        }) => {
+                            graphDiv.innerHTML = svg;
+                            const svgElem = graphDiv.querySelector('svg');
+                            if (svgElem) {
+                                const bbox = svgElem.getBBox();
+                                svgElem.style.maxHeight = bbox.height;
+                                svgElem.style.maxWidth = '100%';
+                            }
+                            pre.remove();
+                        })
+                        .catch((error) => {
+                            console.error("Error rendering Mermaid:", error);
+                            graphDiv.textContent = "Error rendering Mermaid diagram.";
+                        });
+                } else {
+                    // Apply Highlight.js to code blocks
+                    const code = pre.querySelector('code');
+                    if (code) {
+                        hljs.highlightElement(code);
+                    }
+                }
+            });
+        }
+        loadMarkdown();
+    </script>
+</body>
+
+</html>

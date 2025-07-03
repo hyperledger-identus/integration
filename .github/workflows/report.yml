@@ -1,0 +1,95 @@
+name: Generate report
+
+on:
+  workflow_call:
+    inputs:
+      env:
+        type: string
+      run-id:
+        type: string
+      component:
+        type: string
+      sdk-ts:
+        type: boolean
+      sdk-kmp:
+        type: boolean
+      sdk-swift:
+        type: boolean
+
+jobs:
+  report:
+    name: "Generate report for ${{ inputs.component }}"
+    runs-on: ubuntu-latest
+    env:
+      COMPONENT: ${{ inputs.component }}
+      ENV: ${{ inputs.ENV }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download sdk-ts report
+        if: inputs.sdk-ts
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: sdk-ts
+          path: tmp/sdk-ts
+          run-id: ${{ inputs.run-id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download sdk-kmp report
+        if: inputs.sdk-kmp
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: sdk-kmp
+          path: tmp/sdk-kmp
+          run-id: ${{ inputs.run-id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Download sdk-swift
+        if: inputs.sdk-swift
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: sdk-swift
+          path: tmp/sdk-swift
+          run-id: ${{ inputs.run-id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Download github pages
+        uses: ./.github/actions/download-and-extract
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Aggregate reports
+        run: |
+          npm i
+          npm run report
+
+      - name: Update github pages
+        uses: ./.github/actions/update-pages
+        with:
+          gpg-private-key: ${{ secrets.HYP_BOT_GPG_PRIVATE }}
+          gpg-passphrase: ${{ secrets.HYP_BOT_GPG_PASSWORD }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy-pages:
+    needs: report
+    name: Update report website
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

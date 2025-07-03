@@ -1,0 +1,41 @@
+name: 'Download github pages'
+description: 'Download previous pages artifact and extracts'
+
+inputs:
+  gpg-private-key:
+    description: 'Private key'
+    required: true
+  gpg-passphrase:
+    description: 'Private key passphrase'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - uses: crazy-max/ghaction-import-gpg@v6
+      id: import_gpg
+      with:
+        gpg_private_key: ${{ inputs.gpg-private-key }}
+        passphrase: ${{ inputs.gpg-passphrase }}
+        git_user_signingkey: true
+        git_commit_gpgsign: true
+        git_config_global: true
+        git_tag_gpgsign: false
+
+    - name: Copy readme
+      shell: bash
+      run: cp README.md public/static/README.md
+
+    - name: Upload pages artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: './public'
+        retention-days: 90
+
+    - name: Update history
+      shell: bash
+      run: |
+        echo "${{ github.run_id }}" > "./latest-history/lastrun"
+        git add latest-history
+        git commit -S -s -m "chore: update '${{ inputs.component }}' latest history"
+        git push

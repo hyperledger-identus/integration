@@ -1,0 +1,160 @@
+services:
+  #################################################################
+  #                            Gateway                            #
+  #################################################################
+  traefik:
+    image: "traefik:v3.2"
+    container_name: "traefik"
+    command:
+      - "--log.level=DEBUG"
+      - "--api.insecure=false"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entryPoints.traefik.address=:3000"
+      - "--entryPoints.mediator.address=:8080"
+      - "--entryPoints.cloud-agent.address=:8085"
+      - "--entryPoints.didcomm.address=:8090"
+    ports:
+      - "8080:8080"
+      - "3000:3000"
+      - "8085:8085"
+      - "8090:8090"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.dashboard.rule=Host(`localhost`)"
+        - "traefik.http.routers.dashboard.entrypoints=traefik"
+        - "traefik.http.routers.dashboard.service=api@internal"
+
+  #################################################################
+  #     Workaround to enable localhost comm between services      #
+  #################################################################
+  networking:
+    build: .
+    container_name: "networking"
+
+  #################################################################
+  #                           Services                            #
+  #################################################################
+  identus-mediator:
+    image: ghcr.io/hyperledger/identus-mediator:${MEDIATOR_VERSION}
+    network_mode: "container:networking"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mediator.rule=Host(`localhost`)"
+      - "traefik.http.routers.mediator.entrypoints=mediator"
+      - "traefik.http.services.mediator.loadbalancer.server.port=8080"
+    environment:
+      - KEY_AGREEMENT_D=Z6D8LduZgZ6LnrOHPrMTS6uU2u5Btsrk1SGs4fn8M7c
+      - KEY_AGREEMENT_X=Sr4SkIskjN_VdKTn0zkjYbhGTWArdUNE4j_DmUpnQGw
+      - KEY_AUTHENTICATION_D=INXCnxFEl0atLIIQYruHzGd5sUivMRyQOzu87qVerug
+      - KEY_AUTHENTICATION_X=MBjnXZxkMcoQVVL21hahWAw43RuAG-i64ipbeKKqwoA
+      - SERVICE_ENDPOINTS=http://localhost:8080;ws://localhost:8080/ws
+      - MONGODB_USER=admin
+      - MONGODB_PASSWORD=admin
+      - MONGODB_PROTOCOL=mongodb
+      - MONGODB_HOST=mongo
+      - MONGODB_PORT=27017
+      - MONGODB_DB_NAME=mediator
+    depends_on:
+      - "mongo"
+      - "networking"
+
+  cloud-agent:
+    image: ghcr.io/hyperledger/identus-cloud-agent:${CLOUD_AGENT_VERSION}
+    network_mode: "container:networking"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cloud-agent.rule=Host(`localhost`)"
+      - "traefik.http.routers.cloud-agent.entrypoints=cloud-agent"
+      - "traefik.http.routers.cloud-agent.service=cloud-agent"
+      - "traefik.http.services.cloud-agent.loadbalancer.server.port=8085"
+      
+      - "traefik.http.routers.didcomm.rule=Host(`localhost`)"
+      - "traefik.http.routers.didcomm.entrypoints=didcomm"
+      - "traefik.http.routers.didcomm.service=didcomm"
+      - "traefik.http.services.didcomm.loadbalancer.server.port=8090"
+    environment:
+      POLLUX_DB_HOST: db
+      POLLUX_DB_PORT: 5432
+      POLLUX_DB_NAME: pollux
+      POLLUX_DB_USER: postgres
+      POLLUX_DB_PASSWORD: postgres
+      CONNECT_DB_HOST: db
+      CONNECT_DB_PORT: 5432
+      CONNECT_DB_NAME: connect
+      CONNECT_DB_USER: postgres
+      CONNECT_DB_PASSWORD: postgres
+      AGENT_DB_HOST: db
+      AGENT_DB_PORT: 5432
+      AGENT_DB_NAME: agent
+      AGENT_DB_USER: postgres
+      AGENT_DB_PASSWORD: postgres
+      PRISM_NODE_HOST: prism-node
+      PRISM_NODE_PORT: 50053
+      POLLUX_STATUS_LIST_REGISTRY_PUBLIC_URL: http://localhost:8085
+      DIDCOMM_SERVICE_URL: http://localhost:8090
+      REST_SERVICE_URL: http://localhost:8085
+      SECRET_STORAGE_BACKEND: postgres
+      DEV_MODE: true
+      API_KEY_ENABLED: false
+    depends_on:
+      db:
+        condition: service_healthy
+      prism-node:
+        condition: service_started
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8085/_system/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  #################################################################
+  #                        Infrastructure                         #
+  #################################################################
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_MULTIPLE_DATABASES: "pollux,connect,agent,node_db"
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pg_data_db:/var/lib/postgresql/data
+      - ./resources/postgres-init-script.sh:/docker-entrypoint-initdb.d/init-script.sh
+      - ./resources/postgres-max_conns.sql:/docker-entrypoint-initdb.d/max_conns.sql
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "postgres", "-d", "agent" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongo:
+    image: mongo:6.0
+    ports:
+      - "27017:27017"
+    command: ["--auth"]
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=admin
+      - MONGO_INITDB_DATABASE=mediator
+    volumes:
+      - ./resources/mongo-initdb.js:/docker-entrypoint-initdb.d/initdb.js
+      - mongo_db:/data/db
+      - mongo_configdb:/data/configdb
+
+  prism-node:
+    image: docker.io/identus/prism-node:${PRISM_NODE_VERSION}
+    environment:
+      NODE_PSQL_HOST: db:5432
+      NODE_REFRESH_AND_SUBMIT_PERIOD:
+      NODE_MOVE_SCHEDULED_TO_PENDING_PERIOD:
+      NODE_WALLET_MAX_TPS:
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pg_data_db:
+  mongo_db:
+  mongo_configdb:
