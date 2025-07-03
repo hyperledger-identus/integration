@@ -65,7 +65,7 @@ jobs:
           node-version: 20
 
       - name: Download github pages
-        uses: ./.github/actions/download-and-extract
+        uses: ./.github/actions/get-pages
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
