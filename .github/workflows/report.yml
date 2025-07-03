@@ -79,7 +79,6 @@ jobs:
         with:
           gpg-private-key: ${{ secrets.HYP_BOT_GPG_PRIVATE }}
           gpg-passphrase: ${{ secrets.HYP_BOT_GPG_PASSWORD }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
 
   deploy-pages:
     needs: report
