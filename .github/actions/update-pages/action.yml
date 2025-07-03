@@ -43,5 +43,5 @@ runs:
       run: |
         echo "${{ github.run_id }}" > "./latest-history/lastrun"
         git add latest-history
-        git commit -S -s -m "chore: update '${{ inputs.component }}' latest history"
+        git commit -S -s -m "chore: update '${{ inputs.component }}'"
         git push

@@ -106,6 +106,7 @@ jobs:
       pages: write
       id-token: write
       contents: write
+      actions: read
     with:
       env: ${{ needs.main.outputs.env }}
       run-id: ${{ github.run_id }}
