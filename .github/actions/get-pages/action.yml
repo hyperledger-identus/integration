@@ -21,7 +21,7 @@ runs:
       id: read_run_id
       shell: sh
       run: |
-        if [ -f "./history/lastrun" ]; then
+        if [ -f "./latest-history/lastrun" ]; then
           LAST_RUN_ID=$(cat ./latest-history/lastrun)
           echo "Found last run ID: $LAST_RUN_ID"
           echo "run_id_from_file=$LAST_RUN_ID" >> $GITHUB_OUTPUT
