@@ -29,6 +29,7 @@ jobs:
       - name: Update github pages
         uses: ./.github/actions/update-pages
         with:
+          component: "readme"
           gpg-private-key: ${{ secrets.HYP_BOT_GPG_PRIVATE }}
           gpg-passphrase: ${{ secrets.HYP_BOT_GPG_PASSWORD }}
 

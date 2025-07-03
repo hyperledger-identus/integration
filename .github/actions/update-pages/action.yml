@@ -2,6 +2,9 @@ name: 'Download github pages'
 description: 'Download previous pages artifact and extracts'
 
 inputs:
+  component:
+    description: 'Component'
+    required: true
   gpg-private-key:
     description: 'Private key'
     required: true
