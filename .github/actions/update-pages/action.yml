@@ -25,6 +25,7 @@ runs:
     - name: Copy readme
       shell: sh
       run: |
+        mkdir -p latest-history
         mkdir -p public/static
         cp README.md public/static/README.md
 
