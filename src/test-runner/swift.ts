@@ -9,7 +9,7 @@ export class SwiftSdk extends TestRunner {
     readonly testDir = "sdk-swift/E2E"
     readonly allureResultsDirectory = "sdk-swift/E2E/Tests/Target/allure-results"
 
-    readonly runCommand = "xcodebuild -scheme e2e -destination platform=macOS -skipPackagePluginValidation build-for-testing test-without-building | xcpretty"
+    readonly runCommand = "xcodebuild -scheme e2e -destination platform=macOS -skipPackagePluginValidation build-for-testing test-without-building"
 
     protected sdkEnv() {
         const mediatorUrl = process.env.MEDIATOR_OOB_URL?.replace('invitationOOB', 'invitation')
