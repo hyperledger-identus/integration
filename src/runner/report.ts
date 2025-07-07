@@ -161,7 +161,8 @@ async function run() {
     getEnabledRunners(env).forEach(async (runner) => {
         const partialResultDir: string = `tmp/${runner}`
         try {
-            executionPassed = executionPassed && preProcessAllure(partialResultDir, runner)
+            const runnerPassed = preProcessAllure(partialResultDir, runner)
+            executionPassed = executionPassed && runnerPassed
             await cmd(`cp -r ${partialResultDir}/. ${tmpResultsDir}`)
         } catch (e) {
             executionPassed = false
