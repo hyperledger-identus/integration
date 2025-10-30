@@ -85,7 +85,40 @@ interface Label {
     value: string;
 }
 
-function preProcessAllure(resultsDir: string, runner: runner): boolean {
+interface TestStats {
+    passed: number;
+    failed: number;
+    broken: number;
+    skipped: number;
+    total: number;
+}
+
+function generateReleaseMetadata(resultsDir: string, env: environment, testStats: TestStats) {
+    const metadata: any = {
+        version: env.releaseVersion,
+        status: env.releaseVersion?.includes('-draft') ? 'draft' : 'released',
+        components: {
+            "cloud-agent": env.services.agent.version,
+            "mediator": env.services.mediator.version,
+            "prism-node": env.services.node.version
+        },
+        runners: {},
+        testResults: testStats,
+        lastUpdated: new Date().toISOString().split('T')[0],
+        workflow: {
+            runId: env.workflow.runId,
+            url: `https://github.com/hyperledger-identus/integration/actions/runs/${env.workflow.runId}`
+        }
+    };
+    
+    getEnabledRunners(env).forEach(runner => {
+        metadata.runners[runner] = env.runners[runner].version;
+    });
+    
+    writeFileSync(`${resultsDir}/release-info.json`, JSON.stringify(metadata, null, 2));
+}
+
+function preProcessAllure(resultsDir: string, runner: runner): {passed: boolean, stats: TestStats} {
     const results = readdirSync(resultsDir)
         .filter(file => file.endsWith("result.json"))
         .map(file => {
@@ -98,6 +131,7 @@ function preProcessAllure(resultsDir: string, runner: runner): boolean {
         })
 
     let allResults = new Map()
+    let stats: TestStats = { passed: 0, failed: 0, broken: 0, skipped: 0, total: 0 }
 
     // process
     results.forEach(entry => {
@@ -111,7 +145,7 @@ function preProcessAllure(resultsDir: string, runner: runner): boolean {
             entry.result.labels.push({ name: 'suite', value: runner });
         }
 
-        // Aggregate features under a parent epic (for the Behavior tab)
+        // Aggregate features under a parent epic (for Behavior tab)
         const featureLabel = entry.result.labels.find(label => label.name === 'feature');
         if (featureLabel) {
             // Add an epic label
@@ -123,6 +157,14 @@ function preProcessAllure(resultsDir: string, runner: runner): boolean {
             }
         }
 
+        // Count test results
+        const status = entry.result.status
+        stats.total++
+        if (status === 'passed') stats.passed++
+        else if (status === 'failed') stats.failed++
+        else if (status === 'broken') stats.broken++
+        else if (status === 'skipped') stats.skipped++
+
         writeFileSync(entry.filePath, JSON.stringify(entry.result), 'utf-8');
 
         if (allResults.get(entry.result.testCaseId) == 'passed') {
@@ -133,11 +175,69 @@ function preProcessAllure(resultsDir: string, runner: runner): boolean {
     const failed = Array.from(allResults.values()).find(v => {
         return v == 'failed' || v == 'broken' || v == 'unknown'
     })
-    return !failed
+    return { passed: !failed, stats: stats }
+}
+
+async function handleReleaseReport(env: environment) {
+    const tmpResultsDir: string = "tmp/results"
+    const componentReportDir: string = `public/reports/release`
+    const releaseVersion = env.releaseVersion!;
+    
+    // Directory setup
+    await cmd(`mkdir -p ${tmpResultsDir}`)
+    await cmd(`mkdir -p ${componentReportDir}/${releaseVersion}`)
+    
+    let executionPassed = true;
+    let totalStats: TestStats = { passed: 0, failed: 0, broken: 0, skipped: 0, total: 0 }
+    
+    // Enhanced runner processing
+    getEnabledRunners(env).forEach(async (runner) => {
+        const partialResultDir: string = `tmp/${runner}`
+        try {
+            const {passed: runnerPassed, stats: runnerStats} = preProcessAllure(partialResultDir, runner)
+            executionPassed = executionPassed && runnerPassed
+            
+            // Aggregate statistics
+            totalStats.passed += runnerStats.passed
+            totalStats.failed += runnerStats.failed
+            totalStats.broken += runnerStats.broken
+            totalStats.skipped += runnerStats.skipped
+            totalStats.total += runnerStats.total
+            
+            await cmd(`cp -r ${partialResultDir}/. ${tmpResultsDir}`)
+        } catch (e) {
+            executionPassed = false
+            console.error(`Could not find '${partialResultDir}' allure results`, e)
+        }
+    })
+    
+    // Generate release metadata with test statistics
+    generateReleaseMetadata(tmpResultsDir, env, totalStats)
+    
+    // Generate Allure report
+    const innerReportUrl = `${githubPage}reports/release/${releaseVersion}`
+    const externalReportUrl = `${githubPage}release/${releaseVersion}`
+    
+    generateEnvironmentFile(tmpResultsDir, env)
+    generateExecutorFile(tmpResultsDir, env, innerReportUrl)
+    
+    await cmd(`npx allure generate ${tmpResultsDir} -o ${componentReportDir}/${releaseVersion}`)
+    postProcessAllure(`${componentReportDir}/${releaseVersion}`)
+    
+    // Notify slack if execution failed
+    if (!executionPassed) {
+        await slack.sendSlackErrorMessage(externalReportUrl, env)
+    }
 }
 
 async function run() {
     const env: environment = JSON.parse(atob(process.env.ENV!))
+
+    // NEW: Release-specific logic
+    if (env.component === 'release') {
+        await handleReleaseReport(env);
+        return;
+    }
 
     const tmpResultsDir: string = "tmp/results"
     const componentLastHistory: string = `latest-history/${env.component}`
@@ -161,12 +261,12 @@ async function run() {
     getEnabledRunners(env).forEach(async (runner) => {
         const partialResultDir: string = `tmp/${runner}`
         try {
-            const runnerPassed = preProcessAllure(partialResultDir, runner)
+            const {passed: runnerPassed} = preProcessAllure(partialResultDir, runner)
             executionPassed = executionPassed && runnerPassed
             await cmd(`cp -r ${partialResultDir}/. ${tmpResultsDir}`)
         } catch (e) {
             executionPassed = false
-            console.error(`Could not find the '${partialResultDir}' allure results`, e)
+            console.error(`Could not find '${partialResultDir}' allure results`, e)
         }
     })
 

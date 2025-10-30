@@ -9,6 +9,9 @@ on:
         type: string
       component:
         type: string
+      release-version:
+        type: string
+        required: false
       sdk-ts:
         type: boolean
       sdk-kmp:

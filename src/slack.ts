@@ -1,4 +1,6 @@
 import { environment } from "./types.js"
+import { validateEnvironment } from "./config/validation.js"
+import { sanitizeUrl } from "./config/sanitization.js"
 
 const messageTemplate = `:x: Integration of \`%COMPONENT%\` failed: <%REPORT%|Report> | <%WORKFLOW%|Workflow execution>`
 
@@ -9,10 +11,16 @@ const messageTemplate = `:x: Integration of \`%COMPONENT%\` failed: <%REPORT%|Re
  * @returns 
  */
 async function sendSlackMessage(reportUrl: string, env: environment) {
-  if (!process.env.SLACK_WEBHOOK) {
-    console.error('Slack webhook not set. Please set the "SLACK_WEBHOOK" environment variable.')
+  // Validate environment variables
+  const validatedEnv = validateEnvironment()
+  
+  if (!validatedEnv.SLACK_WEBHOOK) {
+    console.warn('Slack webhook not set. Skipping Slack notification.')
     return
   }
+
+  // Sanitize webhook URL
+  const sanitizedWebhook = sanitizeUrl(validatedEnv.SLACK_WEBHOOK)
 
   const executionUrl = `https://github.com/hyperledger-identus/integration/actions/runs/${env.workflow.runId}`
 
@@ -21,12 +29,16 @@ async function sendSlackMessage(reportUrl: string, env: environment) {
     .replace("%REPORT%", reportUrl)
     .replace("%WORKFLOW%", executionUrl)
 
-  await fetch(process.env.SLACK_WEBHOOK, {
-    method: "POST",
-    body: JSON.stringify({
-      text: payload
+  try {
+    await fetch(sanitizedWebhook, {
+      method: "POST",
+      body: JSON.stringify({
+        text: payload
+      })
     })
-  })
+  } catch (error) {
+    console.error('Failed to send Slack message:', error)
+  }
 }
 
 export const slack = {

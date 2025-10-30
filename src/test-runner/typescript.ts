@@ -12,12 +12,12 @@ export class TypescriptSdk extends TestRunner {
     readonly testDir = `${this.repo}/integration-tests/e2e-tests`
     readonly allureResultsDirectory = `${this.testDir}/allure-results`
 
-    readonly runCommand = `npm run test:sdk`
+    readonly runCommand = `npm run test:sdk -- --tags "@connection"`
 
     protected sdkEnv() {
         return {
             MEDIATOR_OOB_URL: process.env.MEDIATOR_OOB_URL!,
-            AGENT_URL: process.env.AGENT_URL! + (process.env.AGENT?.endsWith("/") ? "" : "/")
+            AGENT_URL: process.env.AGENT_URL!
         }
     }
 

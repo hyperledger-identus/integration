@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Routing logic
   const routes = {
     [`${basePath}`]: `${basePath}static/home.html`,
-    [`${basePath}releases`]: `${basePath}reports/releases/index.html`,
+    [`${basePath}release`]: `${basePath}reports/release/index.html`,
     [`${basePath}weekly`]: `${basePath}reports/weekly/index.html`,
     [`${basePath}weekly/{report}`]: `${basePath}reports/weekly/{report}/index.html`,
     [`${basePath}cloud-agent`]: `${basePath}reports/cloud-agent/index.html`,
