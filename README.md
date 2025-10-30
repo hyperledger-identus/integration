@@ -2,12 +2,171 @@
 
 This repository aggregates the result of end-to-end test between the new components and stable components.
 
+## 🚀 New Feature: Manual Integration Testing
+
+We now support **manual integration testing** that allows developers to trigger custom integration tests with specific component versions. This feature enables:
+
+- **Custom Version Combinations**: Test any combination of component versions
+- **Compatibility Validation**: Verify cross-component compatibility
+- **Regression Testing**: Ensure existing functionality works with new versions
+- **Historical Tracking**: Maintain a compatibility matrix over time
+
+### Quick Start
+
+**Via GitHub Actions** (Recommended):
+1. Go to **Actions** → **Manual Integration Tests**
+2. Click **"Run workflow"**
+3. Select components and enter versions
+4. Run the test
+
+**Via CLI**:
+```bash
+# Auto-detected as "sdk" mode (1 SDK)
+npm run manual -- --sdk-ts v1.0.0
+
+# Auto-detected as "all" mode (3 SDKs)
+npm run manual -- --sdk-ts v1.0.0 --sdk-swift v2.1.0 --sdk-kmp v0.5.0
+```
+
+📖 **[Full Documentation](docs/MANUAL_TESTING.md)** | 📋 **[Usage Guide](docs/MANUAL_TESTING_USAGE.md)**
+
+## End-to-end test matrix
+
+| Flow                                | sdk-ts | sdk-swift | sdk-kmp |
+| ----------------------------------- | ------ | --------- | ------- |
+| Backup and restorations             | ✔︎      | ✔︎         | ❌       |
+| Estabilish connection               | ✔︎      | ✔︎         | ❌       |
+| Receive issued JWT credential       | ✔︎      | ✔︎         | ❌       |
+| Receive issued SD-JWT credential    | ✔︎      | ✔︎         | ❌       |
+| Receive issued AnonCreds credential | ✔︎      | ✔︎         | ❌       |
+| Provide JWT proof                   | ✔︎      | ✔︎         | ❌       |
+| Provide SD-JWT proof                | ✔︎      | ✔︎         | ❌       |
+| Provide AnonCreds proof             | ✔︎      | ✔︎         | ❌       |
+| Receive JWT revocation notification | ✔︎      | ✔︎         | ❌       |
+| Verify JWT proof                    | ✔︎      | ✔︎         | ❌       |
+| Verify SD-JWT proof                 | ✔︎      | ✔︎         | ❌       |
+| Verify AnonCreds proof              | ✔︎      | ✔︎         | ❌       |
+| Receive out-of-band JWT credential  | ✔︎      |           | ❌       |
+| Provide out-of-band JWT proof       | ✔︎      |           | ❌       |
+
+**Note**: The Kotlin SDK (sdk-kmp) is currently broken and non-functional. Tests are skipped with clear warnings. See PLAN.md for details on the improvement roadmap.
+
+## Cloud-Agent API matrix
+
+| Method | Endpoint | Description | Covered |
+| ------ | -------- | ----------- | ------- |
+
+## Testing Strategy
+
+This project implements a comprehensive testing strategy using mock services to enable reliable testing without external dependencies.
+
+### Test Architecture
+
+- **MockTestRunner**: Generates realistic Allure test results without executing actual SDKs
+- **MockSlackServer**: HTTP server for testing Slack webhook notifications
+- **MockGitHubAPI**: Simulates GitHub API responses for releases and commits
+- **MockCloudService**: Mocks cloud service endpoints for environment management
+
+### Test Coverage
+
+**Overall Coverage**: 79.44% with 82 tests passing
+
+#### Test Suites
+1. **Unit Tests** (`tests/unit/`)
+   - `MockTestRunner.test.ts` - Core test runner functionality (98% coverage)
+   - `slack.test.ts` - Slack notification testing (11 tests)
+   - `environment.test.ts` - Environment configuration logic (16 tests)
+   - `cloud.test.ts` - Cloud service integration (20 tests)
+   - `report-core.test.ts` - Report generation and Allure processing (16 tests)
+
+2. **Integration Tests** (`tests/integration/`)
+   - `workflow.test.ts` - End-to-end workflow testing (11 tests)
+
+#### Test Scenarios
+
+**MockTestRunner Scenarios**:
+- `all-passing` - All tests pass successfully
+- `some-failures` - Mixed success/failure results
+- `all-failures` - All tests fail
+- `some-broken` - Tests with broken errors
+- `compilation-failure` - Build compilation failures
+- `timeout-failure` - Test timeout scenarios
+- `infrastructure-failure` - Infrastructure issues
+- `network-failure` - Network connectivity problems
+- `configuration-error` - Configuration issues
+- `resource-exhaustion` - Resource limit scenarios
+- `data-corruption` - Data integrity issues
+- `security-breach` - Security incident simulation
+
+### Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run tests with coverage
+npm run test:coverage
+
+# Run specific test suite
+npm test -- tests/unit/mockrunner/MockTestRunner.test.ts
+npm test -- tests/integration/workflow.test.ts
+
+# Run MockTestRunner scenarios directly
+npx tsx test/mockrunner/run-mock-tests.ts --scenario all-passing
+npx tsx test/mockrunner/run-mock-tests.ts --list-scenarios
+```
+
+### Test Features
+
+- **Realistic Data Generation**: Mock services generate realistic test data matching production formats
+- **Error Simulation**: Comprehensive error scenario testing including network failures, API errors, and service outages
+- **Performance Testing**: Large test set handling and concurrent operation testing
+- **End-to-End Workflows**: Complete integration workflow validation from test execution through notification
+- **Component Matrix Testing**: Validates all component combinations and version interactions
+
+### Mock Service APIs
+
+**MockSlackServer**:
+- HTTP server on random port for webhook testing
+- Message validation and request capture
+- Async event emission for test synchronization
+
+**MockGitHubAPI**:
+- Release and commit data simulation
+- Semantic version validation
+- Repository-specific test data
+
+**MockCloudService**:
+- Environment management operations
+- Service restart simulation
+- Failure scenario injection
+
 ## Usage
 
 ```bash
 npm ci
 npx tsx cli --component {component} --runner {runner}
 ```
+
+### Environment Setup
+
+Copy the example environment file and configure the required variables:
+
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+```
+
+**Required Environment Variables:**
+- `ENV`: Base64-encoded JSON string with environment configuration
+- `GH_TOKEN`: GitHub token with repository access
+
+**Optional Environment Variables:**
+- `SLACK_WEBHOOK`: Slack webhook URL for notifications
+- `DEBUG`: Set to `true` for detailed command output
+- `CI`: Set to `true` for CI mode (disables spinners)
+
+See `.env.example` for detailed configuration options.
 
 ### Components
 
@@ -46,9 +205,9 @@ The following table describes the artifact versioning and testing for the integr
 
 In order to test all latest components there's a weekly job.
 
-| environment | cloud-agent | mediator | sdk-ts  | sdk-kmp | sdk-swift |
-| ----------- | ----------- | -------- | ------- | ------- | --------- |
-| weekly      | main        | main     | main    | main    | main      |
+| environment | cloud-agent | mediator | sdk-ts | sdk-kmp | sdk-swift |
+| ----------- | ----------- | -------- | ------ | ------- | --------- |
+| weekly      | main        | main     | main   | main    | main      |
 
 ## Breaking change flow
 

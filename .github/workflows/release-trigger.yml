@@ -1,0 +1,25 @@
+name: Trigger Release Integration
+
+on:
+  repository_dispatch:
+    types: [platform-release]
+
+jobs:
+  trigger-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract release version
+        id: extract
+        run: |
+          VERSION="${{ github.event.client_payload.tag }}"
+          echo "release-version=${VERSION#v}" >> $GITHUB_OUTPUT
+      
+      - name: Trigger release integration
+        uses: ./.github/workflows/integration.yml
+        with:
+          component: release
+          release-version: ${{ steps.extract.outputs.release-version }}
+          env: ${{ toJSON(env) }}
+          sdk-ts: true
+          sdk-kmp: true
+          sdk-swift: true

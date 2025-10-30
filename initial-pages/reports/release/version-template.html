@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Release {VERSION} - Allure Report</title>
+    <link rel="stylesheet" href="../../../static/bulma.css">
+    <link rel="stylesheet" href="../../../static/custom.css">
+    <style>
+        .allure-iframe {
+            width: 100%;
+            height: calc(100vh - 120px);
+            border: none;
+            border-radius: 6px;
+            box-shadow: 0 2px 3px rgba(10, 10, 10, 0.1);
+        }
+        .breadcrumb-nav {
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container is-fluid">
+        <div class="section">
+            <nav class="breadcrumb breadcrumb-nav" aria-label="breadcrumbs">
+                <ul>
+                    <li><a href="../index.html">Releases</a></li>
+                    <li class="is-active"><a href="#" aria-current="page">{VERSION}</a></li>
+                </ul>
+            </nav>
+            
+            <div class="level">
+                <div class="level-left">
+                    <div class="level-item">
+                        <h1 class="title">Release {VERSION}</h1>
+                    </div>
+                </div>
+                <div class="level-right">
+                    <div class="level-item">
+                        <div class="buttons">
+                            <a href="./index.html" class="button is-small is-outlined" target="_blank">
+                                <span class="icon">
+                                    <i class="fas fa-external-link-alt"></i>
+                                </span>
+                                <span>Open in New Tab</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="notification is-info">
+                <strong>Loading Allure Report...</strong> The detailed test report will appear below.
+            </div>
+            
+            <iframe 
+                src="./index.html" 
+                class="allure-iframe"
+                onload="document.querySelector('.notification').style.display='none';"
+                onerror="handleLoadError();">
+            </iframe>
+        </div>
+    </div>
+
+    <script>
+        function handleLoadError() {
+            const notification = document.querySelector('.notification');
+            notification.className = 'notification is-danger';
+            notification.innerHTML = `
+                <strong>Error loading Allure Report.</strong> 
+                The report may not be available yet. 
+                <a href="./index.html" class="button is-small is-danger is-outlined">Try opening directly</a>
+            `;
+        }
+        
+        // Add keyboard shortcut for new tab
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') {
+                window.open('./index.html', '_blank');
+            }
+        });
+    </script>
+</body>
+</html>

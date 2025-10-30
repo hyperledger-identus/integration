@@ -14,20 +14,41 @@
     "yargs": "^17.7.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "@types/jest": "^30.0.0",
+    "@types/jsdom": "^27.0.0",
     "@types/node": "^22.5.0",
     "@types/yargs": "^17.0.33",
     "allure-commandline": "^2.30.0",
+    "jest": "^30.2.0",
+    "jsdom": "^27.1.0",
+    "playwright": "^1.56.1",
+    "ts-jest": "^29.4.5",
     "ts-node": "^10.9.2",
     "tsx": "^4.17.0",
     "typescript": "^5.5.4"
   },
   "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:e2e": "playwright test --reporter=line",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:navigation": "playwright test tests/e2e/tests/navigation.spec.ts --reporter=line",
+    "test:e2e:breadcrumbs": "playwright test tests/e2e/tests/breadcrumbs.spec.ts --reporter=line",
+    "test:e2e:spa-routing": "playwright test tests/e2e/tests/spa-routing.spec.ts --reporter=line",
+    "test:e2e:history": "playwright test tests/e2e/tests/history-management.spec.ts --reporter=line",
+    "test:e2e:integration": "playwright test tests/e2e/tests/integration.spec.ts --reporter=line",
     "environment": "npx tsx src/cli/environment",
+    "environment:manual": "npx tsx src/cli/environment-manual",
     "docker:start": "npx tsx src/cli/docker.ts start",
-    "docker:stop": "npx tsx src/cli/docker.ts stop",
+    "docker:stop": "npx tsx src/docker.ts stop",
     "cloud:setup": "npx tsx src/cli/cloud.ts setup",
     "cloud:check": "npx tsx src/cli/cloud.ts check",
     "integration": "npx tsx src/cli/integration",
-    "report": "npx tsx src/cli/report"
+    "report": "npx tsx src/cli/report",
+    "manual": "npx tsx src/cli/manual.ts"
   }
 }

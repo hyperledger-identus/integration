@@ -1,17 +1,27 @@
 import { spawn, SpawnOptions } from "child_process"
 import { appendFileSync } from "fs"
+import { sanitizeCommand } from "./config/sanitization.js"
 
 const isDebug = process.env.DEBUG ? true : false
 const isCi = process.env.CI ? true : false
+// Define allowed commands for security
+const ALLOWED_COMMANDS = [
+    'npm', 'git', 'docker', 'xcodebuild', 'gradle', 'mvn', 'mkdir', 'rm', 'cp', 'ls', 'cat',
+    'curl', 'wget', 'echo', 'date', 'whoami', 'pwd', 'chmod', 'chown', 'npx'
+]
+
 async function execute(cmd: string, options?: SpawnOptions): Promise<string> {
     if (!options) options = { env: process.env }
     options.shell = true
 
+    // Sanitize the command for security
+    const sanitizedCmd = sanitizeCommand(cmd, ALLOWED_COMMANDS)
+
     const spinner = createSpinner()
-    console.info("cmd:", cmd)
+    console.info("cmd:", sanitizedCmd)
 
     return await new Promise<string>((resolve, reject) => {
-        const [command, ...args] = cmd.split(' ')
+        const [command, ...args] = sanitizedCmd.split(' ')
         const runner = spawn(command, args, options)
 
         let stdout = ''
@@ -46,7 +56,7 @@ async function execute(cmd: string, options?: SpawnOptions): Promise<string> {
             clearSpinner(spinner)
             if (code !== 0) {
                 const error = new Error(`Command failed with exit code ${code}`) as any
-                reject(error.sdterr)
+                reject(error.stderr)
             } else {
                 resolve(stdout)
             }
@@ -59,8 +69,12 @@ function createSpinner(): NodeJS.Timeout | undefined {
 
     var i = 0
     return setInterval(function () {
-        process.stdout.clearLine(-1)
-        process.stdout.cursorTo(0)
+        if (process.stdout.clearLine) {
+            process.stdout.clearLine(-1)
+        }
+        if (process.stdout.cursorTo) {
+            process.stdout.cursorTo(0)
+        }
         i = (i + 1) % 4
         var dots = new Array(i + 1).join(".")
         process.stdout.write(dots)
@@ -71,8 +85,12 @@ function clearSpinner(spinner: NodeJS.Timeout | undefined) {
     if (isDebug || isCi) return
 
     clearInterval(spinner)
-    process.stdout.clearLine(-1)
-    process.stdout.cursorTo(0)
+    if (process.stdout.clearLine) {
+        process.stdout.clearLine(-1)
+    }
+    if (process.stdout.cursorTo) {
+        process.stdout.cursorTo(0)
+    }
 }
 
 export const cmd = (cmd: string, options?: SpawnOptions) => execute(cmd, options)

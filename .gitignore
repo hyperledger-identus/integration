@@ -1,5 +1,7 @@
 node_modules
 .env
+dist
+test-results
 
 # misc
 env.json
@@ -10,6 +12,9 @@ env.json
 /sdk-kmp
 /sdk-swift
 /tmp
+/temp
 /public/static/README.md
 /env
 logs
+
+coverage/

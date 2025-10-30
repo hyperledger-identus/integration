@@ -1,13 +1,23 @@
 import { Octokit } from 'octokit'
-import { components, environment, repo } from '../types.js'
+import { components, environment, repo, component as ComponentType } from '../types.js'
+import { validateEnvironment } from '../config/validation.js'
+import { sanitizeVersion, sanitizeComponent } from '../config/sanitization.js'
 
 /**
  * Setup class
  * Finds the version of components and store as a file
  */
 async function run(): Promise<string> {
+    // Validate environment variables
+    const validatedEnv = validateEnvironment()
+
+    // Sanitize VERSION if provided
+    if (process.env.VERSION) {
+        process.env.VERSION = sanitizeVersion(process.env.VERSION)
+    }
+
     const octokit = new Octokit({
-        auth: process.env.GH_TOKEN
+        auth: validatedEnv.GH_TOKEN
     })
 
     async function getLatestReleaseTag(repo: repo): Promise<string> {
@@ -16,7 +26,7 @@ async function run(): Promise<string> {
             owner: 'hyperledger-identus',
             repo: repo,
         })
-        const tag = releases.data[0].tag_name
+        const tag = releases.data.filter((r: any) => !r.prerelease)[0].tag_name
         return extractSemVer(tag)
     }
 
@@ -32,19 +42,16 @@ async function run(): Promise<string> {
     async function getLatestDockerRevision(serviceName: string): Promise<string> {
         console.info("fetching latest docker revision for", serviceName)
         const response = await fetch(
-            `https://hub.docker.com/v2/repositories/hyperledgeridentus/${serviceName}/tags`, 
+            `https://hub.docker.com/v2/repositories/hyperledgeridentus/${serviceName}/tags`,
             { method: 'GET' }
         )
-        return (await response.json()).results.find((tag: any) => {
-            const semverRegex = /^\d+\.\d+(\.\d+)?(-.+)?/;
-            return semverRegex.test(tag.name);
-        }).name
+        let jsonResponse = await response.json()
+        return jsonResponse.results[0].name
     }
 
     function extractSemVer(versionString: string): string {
         const regex = /(\d+)\.(\d+)\.(\d+)$/;
         const match = versionString.match(regex);
-
         if (match) {
             const [, major, minor, patch] = match;
             return `${major}.${minor}.${patch}`
@@ -61,11 +68,8 @@ async function run(): Promise<string> {
         }
     }
 
-    const component = components.find((component) => component == process.env.COMPONENT)
-
-    if (!component) {
-        throw new Error(`Unable to find '${process.env.COMPONENT}' component.`)
-    }
+    const componentValue = sanitizeComponent(process.env.COMPONENT, [...components] as string[])
+    const component = componentValue as ComponentType
 
     const environment: environment = {
         component,
@@ -88,6 +92,17 @@ async function run(): Promise<string> {
             'sdk-kmp': initRunner(false, false, ''),
             'sdk-swift': initRunner(false, false, '')
         }
+    }
+
+    if (component == 'release') {
+        environment['releaseVersion'] = process.env.VERSION
+        environment['services']['node']['version'] = '2.5.0'
+        environment['services']['agent']['version'] = await getLatestReleaseTag('cloud-agent')
+        environment['services']['mediator']['version'] = await getLatestReleaseTag('mediator')
+        environment['runners']['sdk-ts'] = initRunner(true, false, await getLatestReleaseTag('sdk-ts'))
+        environment['runners']['sdk-kmp'] = initRunner(true, false, await getLatestReleaseTag('sdk-kmp'))
+        environment['runners']['sdk-swift'] = initRunner(true, false, await getLatestReleaseTag('sdk-swift'))
+        return btoa(JSON.stringify(environment))
     }
 
     if (component == 'weekly') {
@@ -141,6 +156,59 @@ async function run(): Promise<string> {
     return btoa(JSON.stringify(environment))
 }
 
+function manualRun() {
+    function initRunner(enabled: boolean, build: boolean, version: string) {
+        return {
+            enabled,
+            build,
+            version
+        }
+    }
+
+    validateEnvironment()
+
+    const environment: environment = {
+        component: 'manual',
+        workflow: {
+            runId: parseInt(process.env.RUN_ID!)
+        },
+        services: {
+            agent: {
+                version: process.env.CLOUD_AGENT_VERSION!
+            },
+            mediator: {
+                version: process.env.MEDIATOR_VERSION!
+            },
+            node: {
+                version: process.env.PRISM_NODE_VERSION!
+            }
+        },
+        runners: {
+            'sdk-ts': initRunner(false, false, ''),
+            'sdk-kmp': initRunner(false, false, ''),
+            'sdk-swift': initRunner(false, false, '')
+        }
+    }
+
+    if (process.env.SDK_TS_VERSION) {
+        environment['runners']['sdk-ts']['enabled'] = true
+        environment['runners']['sdk-ts']['version'] = process.env.SDK_TS_VERSION
+    }
+
+    if (process.env.SDK_KMP_VERSION) {
+        environment['runners']['sdk-kmp']['enabled'] = true
+        environment['runners']['sdk-kmp']['version'] = process.env.SDK_KMP_VERSION
+    }
+
+    if (process.env.SDK_SWIFT_VERSION) {
+        environment['runners']['sdk-swift']['enabled'] = true
+        environment['runners']['sdk-swift']['version'] = process.env.SDK_SWIFT_VERSION
+    }
+
+    const env = btoa(JSON.stringify(environment))
+    return env
+}
 export const env = {
-    run
+    run,
+    manualRun
 }

@@ -10,7 +10,9 @@ export const components = [
     'cloud-agent',
     'mediator',
     'prism-node',
-    'weekly'
+    'weekly',
+    'release',
+    'manual'
 ] as const
 
 export const repos = [
@@ -34,6 +36,7 @@ export type component = typeof components[number]
 export type repo = typeof repos[number]
 export type environment = {
     component: component,
+    releaseVersion?: string,
     workflow: {
         runId: number
     },

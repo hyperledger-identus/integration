@@ -1,17 +1,25 @@
-
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'fs';
 import { cmd } from "../cmd.js";
 import { environment, runner, runners } from "../types.js";
 import { slack } from "../slack.js";
 import { join } from 'path';
 
-const githubPage = "https://hyperledger-identus.github.io/integration/"
+// Base URL for external notifications (Slack, etc.)
+const externalBaseUrl = process.env.EXTERNAL_BASE_URL || "https://hyperledger-identus.github.io/integration/"
 
 const htmlTemplate = `<!DOCTYPE html>
 <html lang="en">
 <body>
     <script>
-        window.location.href = "%PAGE%/?c=" + Date.now()
+        const targetUrl = "__PAGE__/?c=" + Date.now();
+        
+        // Update parent URL if we're in an iframe
+        if (window.parent && window.parent !== window) {
+            window.parent.history.pushState({page: '/__COMPONENT__/__PAGE__'}, '', '/__COMPONENT__/__PAGE__');
+        }
+        
+        // Navigate to the actual report
+        window.location.href = targetUrl;
     </script>
 </body>
 </html>`
@@ -48,9 +56,27 @@ function generateExecutorFile(resultsDir: string, env: environment, newReportUrl
 }
 
 function generateRedirectPage(component: string, nextReportId: number) {
-    const html = htmlTemplate.replace("%PAGE%", `${nextReportId}`)
+    // Map filesystem component to URL component
+    const urlComponentMap: { [key: string]: string } = {
+        'sdk-ts': 'typescript',
+        'sdk-swift': 'swift', 
+        'sdk-kmp': 'kotlin',
+        'cloud-agent': 'cloud-agent',
+        'mediator': 'mediator',
+        'manual': 'manual',
+        'weekly': 'weekly',
+        'release': 'release'
+    };
+    
+    const urlComponent = urlComponentMap[component] || component;
+    
+    const html = htmlTemplate
+        .replace(/__PAGE__/g, `${nextReportId}`)
+        .replace(/__COMPONENT__/g, urlComponent);
     writeFileSync(`./public/reports/${component}/index.html`, html)
 }
+
+
 
 function getSubfolders(dir: string): string[] {
     try {
@@ -70,6 +96,11 @@ function postProcessAllure(reportPath: string) {
         `return'                    <a class="link" href="'+a(i(null!=e?s(e,"buildUrl"):e,e))`,
         `return'                    <a class="link" target="_blank" href="'+a(i(null!=e?s(e,"buildUrl"):e,e))`
     )
+
+    appJs = appJs.replace(
+        `.attr("xlink:href",(function(t){return t.reportUrl}))`,
+        `.attr("xlink:href",(function(t){return window.basePath + t.reportUrl}))`
+    )
     writeFileSync(`${reportPath}/app.js`, appJs)
 }
 
@@ -85,7 +116,111 @@ interface Label {
     value: string;
 }
 
-function preProcessAllure(resultsDir: string, runner: runner): boolean {
+interface TestStats {
+    passed: number;
+    failed: number;
+    broken: number;
+    skipped: number;
+    total: number;
+}
+
+function generateReleaseMetadata(resultsDir: string, env: environment, testStats: TestStats) {
+    const metadata: any = {
+        version: env.releaseVersion?.toString() || 'unknown',
+        status: env.releaseVersion?.includes('-draft') ? 'draft' : 'released',
+        components: {
+            "cloud-agent": env.services.agent.version,
+            "mediator": env.services.mediator.version,
+            "prism-node": env.services.node.version
+        },
+        runners: {},
+        testResults: testStats,
+        lastUpdated: new Date().toISOString().split('T')[0],
+        workflow: {
+            runId: env.workflow.runId,
+            url: `https://github.com/hyperledger-identus/integration/actions/runs/${env.workflow.runId}`
+        }
+    };
+    
+    getEnabledRunners(env).forEach(runner => {
+        metadata.runners[runner] = env.runners[runner].version;
+    });
+    
+    writeFileSync(`${resultsDir}/release-info.json`, JSON.stringify(metadata, null, 2));
+}
+
+async function updateReleasesManifest(componentReportDir: string, releaseVersion: string) {
+    const manifestPath = `${componentReportDir}/releases.json`;
+    let releases: any[] = [];
+    
+    // Read existing manifest if it exists
+    if (existsSync(manifestPath)) {
+        try {
+            const manifestData = readFileSync(manifestPath, 'utf-8');
+            releases = JSON.parse(manifestData);
+        } catch (error) {
+            console.warn('Failed to read existing releases manifest, creating new one');
+        }
+    }
+    
+    // Check if this version already exists
+    const existingIndex = releases.findIndex(r => r.version === releaseVersion);
+    const releaseInfo = {
+        version: releaseVersion,
+        path: `./${releaseVersion}/index.html`,
+        lastUpdated: new Date().toISOString().split('T')[0]
+    };
+    
+    if (existingIndex >= 0) {
+        // Update existing entry
+        releases[existingIndex] = releaseInfo;
+    } else {
+        // Add new entry
+        releases.push(releaseInfo);
+    }
+    
+    // Sort releases by version (newest first)
+    releases.sort((a, b) => {
+        const aVersion = parseVersion(a.version);
+        const bVersion = parseVersion(b.version);
+        
+        if (aVersion && bVersion) {
+            return bVersion.compare(aVersion);
+        }
+        
+        return b.version.localeCompare(a.version);
+    });
+    
+    // Write updated manifest
+    writeFileSync(manifestPath, JSON.stringify(releases, null, 2));
+}
+
+function parseVersion(version: string) {
+    const match = version.match(/^(\d+)\.(\d+)(?:\.(\d+))?(?:-(.+))?$/);
+    if (!match) return null;
+    
+    const [, major, minor, patch, prerelease] = match;
+    return {
+        major: parseInt(major),
+        minor: parseInt(minor),
+        patch: parseInt(patch || '0'),
+        prerelease: prerelease || null,
+        compare(other: any) {
+            if (this.major !== other.major) return this.major - other.major;
+            if (this.minor !== other.minor) return this.minor - other.minor;
+            if (this.patch !== other.patch) return this.patch - other.patch;
+            
+            if (this.prerelease && !other.prerelease) return -1;
+            if (!this.prerelease && other.prerelease) return 1;
+            if (this.prerelease && other.prerelease) {
+                return this.prerelease.localeCompare(other.prerelease);
+            }
+            return 0;
+        }
+    };
+}
+
+function preProcessAllure(resultsDir: string, runner: runner): {passed: boolean, stats: TestStats} {
     const results = readdirSync(resultsDir)
         .filter(file => file.endsWith("result.json"))
         .map(file => {
@@ -98,6 +233,7 @@ function preProcessAllure(resultsDir: string, runner: runner): boolean {
         })
 
     let allResults = new Map()
+    let stats: TestStats = { passed: 0, failed: 0, broken: 0, skipped: 0, total: 0 }
 
     // process
     results.forEach(entry => {
@@ -111,7 +247,7 @@ function preProcessAllure(resultsDir: string, runner: runner): boolean {
             entry.result.labels.push({ name: 'suite', value: runner });
         }
 
-        // Aggregate features under a parent epic (for the Behavior tab)
+        // Aggregate features under a parent epic (for Behavior tab)
         const featureLabel = entry.result.labels.find(label => label.name === 'feature');
         if (featureLabel) {
             // Add an epic label
@@ -123,6 +259,14 @@ function preProcessAllure(resultsDir: string, runner: runner): boolean {
             }
         }
 
+        // Count test results
+        const status = entry.result.status
+        stats.total++
+        if (status === 'passed') stats.passed++
+        else if (status === 'failed') stats.failed++
+        else if (status === 'broken') stats.broken++
+        else if (status === 'skipped') stats.skipped++
+
         writeFileSync(entry.filePath, JSON.stringify(entry.result), 'utf-8');
 
         if (allResults.get(entry.result.testCaseId) == 'passed') {
@@ -133,87 +277,174 @@ function preProcessAllure(resultsDir: string, runner: runner): boolean {
     const failed = Array.from(allResults.values()).find(v => {
         return v == 'failed' || v == 'broken' || v == 'unknown'
     })
-    return !failed
+    return { passed: !failed, stats: stats }
+}
+
+async function processRunners(env: environment, tmpResultsDir: string): Promise<{passed: boolean, stats: TestStats}> {
+    let executionPassed = true;
+    let totalStats: TestStats = { passed: 0, failed: 0, broken: 0, skipped: 0, total: 0 }
+    
+    getEnabledRunners(env).forEach(async (runner) => {
+        const partialResultDir: string = `tmp/${runner}`
+        try {
+            const {passed: runnerPassed, stats: runnerStats} = preProcessAllure(partialResultDir, runner)
+            executionPassed = executionPassed && runnerPassed
+            
+            // Aggregate statistics
+            totalStats.passed += runnerStats.passed
+            totalStats.failed += runnerStats.failed
+            totalStats.broken += runnerStats.broken
+            totalStats.skipped += runnerStats.skipped
+            totalStats.total += runnerStats.total
+            
+            await cmd(`cp -r ${partialResultDir}/. ${tmpResultsDir}`)
+        } catch (e) {
+            executionPassed = false
+            console.error(`Could not find '${partialResultDir}' allure results`, e)
+        }
+    })
+    
+    return { passed: executionPassed, stats: totalStats }
+}
+
+async function generateAllureReport(
+    tmpResultsDir: string, 
+    outputDir: string, 
+    env: environment, 
+    innerReportUrl: string
+): Promise<void> {
+    generateEnvironmentFile(tmpResultsDir, env)
+    generateExecutorFile(tmpResultsDir, env, innerReportUrl)
+    
+    await cmd(`npx allure generate ${tmpResultsDir} -o ${outputDir} --clean`)
+    postProcessAllure(outputDir)
+}
+
+async function setupDirectories(
+    tmpResultsDir: string, 
+    componentReportDir: string, 
+    componentLastHistory?: string,
+    releaseVersion?: string
+): Promise<void> {
+    // Cleanup and create temp directory
+    await cmd(`rm -rf ${tmpResultsDir}`)
+    await cmd(`mkdir -p ${tmpResultsDir}`)
+    
+    // Create component report directory
+    if (releaseVersion) {
+        await cmd(`mkdir -p ${componentReportDir}/${releaseVersion}`)
+    } else {
+        await cmd(`mkdir -p ${componentReportDir}`)
+        await cmd(`mkdir -p ${tmpResultsDir}/history`)
+        if (componentLastHistory) {
+            await cmd(`mkdir -p ${componentLastHistory}`)
+        }
+    }
+}
+
+async function cleanupOldReportsAndGetNextId(componentReportDir: string): Promise<number> {
+    // Delete extra reports
+    const reportDirSubfolders: string[] = getSubfolders(componentReportDir)
+
+    // History dirs mapped to number ('./0', './1' ... './n')
+    const historyDirs: number[] = reportDirSubfolders
+        .filter((subfolder) => !isNaN(Number(subfolder)))
+        .map((subfolder => parseInt(subfolder)))
+        .sort((a, b) => a - b) // nodejs 🤷‍♂️
+
+    // Number of entries to keep
+    const keepInHistory = 10
+
+    // Deletes 'n' extra folders greater than 'keepInHistory' variable
+    const extraReportsToDelete = historyDirs.length - (keepInHistory - 1)
+    for (let n = 0; n < extraReportsToDelete; n++) {
+        await cmd(`rm -rf ${componentReportDir}/${historyDirs[n]}`)
+    }
+
+    // Gets name of last folder
+    return historyDirs[historyDirs.length - 1] + 1 || 1
+}
+
+async function handleReleaseReport(env: environment) {
+    const tmpResultsDir: string = "tmp/results"
+    const componentReportDir: string = `public/reports/release`
+    const releaseVersion = env.releaseVersion!
+    
+    // Directory setup
+    await setupDirectories(tmpResultsDir, componentReportDir, undefined, releaseVersion)
+    
+    // Process runners and get results
+    const {passed: executionPassed, stats: totalStats} = await processRunners(env, tmpResultsDir)
+    
+    // Generate release metadata with test statistics
+    generateReleaseMetadata(tmpResultsDir, env, totalStats)
+    
+    // Generate Allure report
+    const innerReportUrl = `/reports/release/${releaseVersion}`
+    const externalReportUrl = `${externalBaseUrl}release/${releaseVersion}`
+    
+    await generateAllureReport(tmpResultsDir, `${componentReportDir}/${releaseVersion}`, env, innerReportUrl)
+    
+    // Copy release-info.json to output directory
+    await cmd(`cp ${tmpResultsDir}/release-info.json ${componentReportDir}/${releaseVersion}/`)
+    
+    // Update releases.json manifest
+    await updateReleasesManifest(componentReportDir, releaseVersion)
+    
+    // Notify slack if execution failed
+    if (!executionPassed) {
+        await slack.sendSlackErrorMessage(externalReportUrl, env)
+    }
 }
 
 async function run() {
     const env: environment = JSON.parse(atob(process.env.ENV!))
-
-    const tmpResultsDir: string = "tmp/results"
-    const componentLastHistory: string = `latest-history/${env.component}`
-    const componentReportDir: string = `public/reports/${env.component}`
 
     const hasPages = existsSync('./public')
     if (!hasPages) {
         await cmd(`cp -r ./initial-pages/. ./public`)
     }
 
-    // cleanup
-    await cmd(`rm -rf ${tmpResultsDir}`)
-
-    // directory setup
-    await cmd(`mkdir -p ${tmpResultsDir}`)
-    await cmd(`mkdir -p ${tmpResultsDir}/history`)
-    await cmd(`mkdir -p ${componentLastHistory}`)
-
-    let executionPassed = true
-    // partial results processor
-    getEnabledRunners(env).forEach(async (runner) => {
-        const partialResultDir: string = `tmp/${runner}`
-        try {
-            const runnerPassed = preProcessAllure(partialResultDir, runner)
-            executionPassed = executionPassed && runnerPassed
-            await cmd(`cp -r ${partialResultDir}/. ${tmpResultsDir}`)
-        } catch (e) {
-            executionPassed = false
-            console.error(`Could not find the '${partialResultDir}' allure results`, e)
-        }
-    })
-
-    // delete extra reports
-    const reportDirSubfolders: string[] = getSubfolders(componentReportDir)
-
-    // history dirs mapped to number ('./0', './1' ... './n')
-    const historyDirs: number[] = reportDirSubfolders
-        .filter((subfolder) => !isNaN(Number(subfolder)))
-        .map((subfolder => parseInt(subfolder)))
-        .sort((a, b) => a - b) // nodejs 🤷‍♂️
-
-    // number of entries to keep
-    const keepInHistory = 10
-
-    // deletes 'n' extra folders greater than the 'keepInHistory' variable
-    const extraReportsToDelete = historyDirs.length - (keepInHistory - 1)
-    for (let n = 0; n < extraReportsToDelete; n++) {
-        await cmd(`rm -rf ${componentReportDir}/${historyDirs[n]}`)
+    // NEW: Release-specific logic
+    if (env.component === 'release') {
+        await handleReleaseReport(env);
+        return;
     }
 
-    // gets the name of last folder
-    const nextReportId: number = historyDirs[historyDirs.length - 1] + 1 || 1
+    const tmpResultsDir: string = "tmp/results"
+    const componentLastHistory: string = `latest-history/${env.component}`
+    const componentReportDir: string = `public/reports/${env.component}`
+
+    // Directory setup
+    await setupDirectories(tmpResultsDir, componentReportDir, componentLastHistory)
+
+    // Process runners and get results
+    const {passed: executionPassed} = await processRunners(env, tmpResultsDir)
+
+    // Delete extra reports and get next report ID
+    const nextReportId = await cleanupOldReportsAndGetNextId(componentReportDir)
+    
     try {
-        // copy latest history for generation
+        // Copy latest history for generation
         await cmd(`cp -r ${componentLastHistory}/. ${tmpResultsDir}/history`)
     } catch (_) {
         console.warn("History not found, skipping.")
     }
 
-    // variables
-    const innerReportUrl = `${githubPage}reports/${env.component}/${nextReportId}`
-    const externalReportUrl = `${githubPage}${env.component}/${nextReportId}`
+    // Variables
+    const innerReportUrl = `./reports/${env.component}/${nextReportId}`
+    const externalReportUrl = `${externalBaseUrl}${env.component}/${nextReportId}`
 
-    // create environment files
-    generateEnvironmentFile(tmpResultsDir, env)
-    generateExecutorFile(tmpResultsDir, env, innerReportUrl)
-
-    // generate allure report
-    await cmd(`npx allure generate ${tmpResultsDir} -o ${componentReportDir}/${nextReportId}`)
-    postProcessAllure(`${componentReportDir}/${nextReportId}`)
+    // Generate Allure report
+    await generateAllureReport(tmpResultsDir, `${componentReportDir}/${nextReportId}`, env, innerReportUrl)
+    
+    // Generate redirect page to latest report
     generateRedirectPage(env.component, nextReportId)
 
-    // update latest history for the component
+    // Update latest history for the component
     await cmd(`cp -r ${componentReportDir}/${nextReportId}/history/. ${componentLastHistory}`)
 
-    // notify slack if execution failed
+    // Notify slack if execution failed
     if (!executionPassed) {
         await slack.sendSlackErrorMessage(externalReportUrl, env)
     }
