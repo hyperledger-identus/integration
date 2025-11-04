@@ -197,25 +197,25 @@ describe('Report Core Functions', () => {
 
   describe('URL Generation Logic', () => {
     it('should generate correct report URLs', () => {
-      const githubPage = "https://hyperledger-identus.github.io/integration/"
+      const basePath = "./"
       const component = 'cloud-agent'
       const nextReportId = 5
       
-      const innerReportUrl = `${githubPage}reports/${component}/${nextReportId}`
-      const externalReportUrl = `${githubPage}${component}/${nextReportId}`
+      const innerReportUrl = `${basePath}reports/${component}/${nextReportId}`
+      const externalReportUrl = `${component}/${nextReportId}`
       
-      expect(innerReportUrl).toBe('https://hyperledger-identus.github.io/integration/reports/cloud-agent/5')
-      expect(externalReportUrl).toBe('https://hyperledger-identus.github.io/integration/cloud-agent/5')
+      expect(innerReportUrl).toBe('./reports/cloud-agent/5')
+      expect(externalReportUrl).toBe('cloud-agent/5')
     })
 
     it('should handle different components correctly', () => {
-      const githubPage = "https://hyperledger-identus.github.io/integration/"
+      const basePath = "./"
       const components = ['cloud-agent', 'mediator', 'sdk-ts', 'weekly']
       const reportId = 3
       
       components.forEach(component => {
-        const url = `${githubPage}${component}/${reportId}`
-        expect(url).toBe(`https://hyperledger-identus.github.io/integration/${component}/${3}`)
+        const url = `${component}/${reportId}`
+        expect(url).toBe(`${component}/3`)
       })
     })
   })

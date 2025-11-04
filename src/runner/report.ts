@@ -1,11 +1,11 @@
-
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'fs';
 import { cmd } from "../cmd.js";
 import { environment, runner, runners } from "../types.js";
 import { slack } from "../slack.js";
 import { join } from 'path';
 
-const githubPage = "https://hyperledger-identus.github.io/integration/"
+// Base URL for external notifications (Slack, etc.)
+const externalBaseUrl = process.env.EXTERNAL_BASE_URL || "https://hyperledger-identus.github.io/integration/"
 
 const htmlTemplate = `<!DOCTYPE html>
 <html lang="en">
@@ -249,19 +249,10 @@ function preProcessAllure(resultsDir: string, runner: runner): {passed: boolean,
     return { passed: !failed, stats: stats }
 }
 
-async function handleReleaseReport(env: environment) {
-    const tmpResultsDir: string = "tmp/results"
-    const componentReportDir: string = `public/reports/release`
-    const releaseVersion = env.releaseVersion!;
-    
-    // Directory setup
-    await cmd(`mkdir -p ${tmpResultsDir}`)
-    await cmd(`mkdir -p ${componentReportDir}/${releaseVersion}`)
-    
+async function processRunners(env: environment, tmpResultsDir: string): Promise<{passed: boolean, stats: TestStats}> {
     let executionPassed = true;
     let totalStats: TestStats = { passed: 0, failed: 0, broken: 0, skipped: 0, total: 0 }
     
-    // Enhanced runner processing
     getEnabledRunners(env).forEach(async (runner) => {
         const partialResultDir: string = `tmp/${runner}`
         try {
@@ -282,20 +273,88 @@ async function handleReleaseReport(env: environment) {
         }
     })
     
+    return { passed: executionPassed, stats: totalStats }
+}
+
+async function generateAllureReport(
+    tmpResultsDir: string, 
+    outputDir: string, 
+    env: environment, 
+    innerReportUrl: string
+): Promise<void> {
+    generateEnvironmentFile(tmpResultsDir, env)
+    generateExecutorFile(tmpResultsDir, env, innerReportUrl)
+    
+    await cmd(`npx allure generate ${tmpResultsDir} -o ${outputDir} --clean`)
+    postProcessAllure(outputDir)
+}
+
+async function setupDirectories(
+    tmpResultsDir: string, 
+    componentReportDir: string, 
+    componentLastHistory?: string,
+    releaseVersion?: string
+): Promise<void> {
+    // Cleanup and create temp directory
+    await cmd(`rm -rf ${tmpResultsDir}`)
+    await cmd(`mkdir -p ${tmpResultsDir}`)
+    
+    // Create component report directory
+    if (releaseVersion) {
+        await cmd(`mkdir -p ${componentReportDir}/${releaseVersion}`)
+    } else {
+        await cmd(`mkdir -p ${componentReportDir}`)
+        await cmd(`mkdir -p ${tmpResultsDir}/history`)
+        if (componentLastHistory) {
+            await cmd(`mkdir -p ${componentLastHistory}`)
+        }
+    }
+}
+
+async function cleanupOldReportsAndGetNextId(componentReportDir: string): Promise<number> {
+    // Delete extra reports
+    const reportDirSubfolders: string[] = getSubfolders(componentReportDir)
+
+    // History dirs mapped to number ('./0', './1' ... './n')
+    const historyDirs: number[] = reportDirSubfolders
+        .filter((subfolder) => !isNaN(Number(subfolder)))
+        .map((subfolder => parseInt(subfolder)))
+        .sort((a, b) => a - b) // nodejs 🤷‍♂️
+
+    // Number of entries to keep
+    const keepInHistory = 10
+
+    // Deletes 'n' extra folders greater than 'keepInHistory' variable
+    const extraReportsToDelete = historyDirs.length - (keepInHistory - 1)
+    for (let n = 0; n < extraReportsToDelete; n++) {
+        await cmd(`rm -rf ${componentReportDir}/${historyDirs[n]}`)
+    }
+
+    // Gets name of last folder
+    return historyDirs[historyDirs.length - 1] + 1 || 1
+}
+
+async function handleReleaseReport(env: environment) {
+    const tmpResultsDir: string = "tmp/results"
+    const componentReportDir: string = `public/reports/release`
+    const releaseVersion = env.releaseVersion!
+    
+    // Directory setup
+    await setupDirectories(tmpResultsDir, componentReportDir, undefined, releaseVersion)
+    
+    // Process runners and get results
+    const {passed: executionPassed, stats: totalStats} = await processRunners(env, tmpResultsDir)
+    
     // Generate release metadata with test statistics
     generateReleaseMetadata(tmpResultsDir, env, totalStats)
     
     // Generate Allure report
-    const innerReportUrl = `${githubPage}reports/release/${releaseVersion}`
-    const externalReportUrl = `${githubPage}release/${releaseVersion}`
+    const innerReportUrl = `./reports/release/${releaseVersion}`
+    const externalReportUrl = `${externalBaseUrl}release/${releaseVersion}`
     
-    generateEnvironmentFile(tmpResultsDir, env)
-    generateExecutorFile(tmpResultsDir, env, innerReportUrl)
+    await generateAllureReport(tmpResultsDir, `${componentReportDir}/${releaseVersion}`, env, innerReportUrl)
     
-    await cmd(`npx allure generate ${tmpResultsDir} -o ${componentReportDir}/${releaseVersion}`)
-    postProcessAllure(`${componentReportDir}/${releaseVersion}`)
-    
-    // Copy release-info.json to the output directory
+    // Copy release-info.json to output directory
     await cmd(`cp ${tmpResultsDir}/release-info.json ${componentReportDir}/${releaseVersion}/`)
     
     // Update releases.json manifest
@@ -310,6 +369,11 @@ async function handleReleaseReport(env: environment) {
 async function run() {
     const env: environment = JSON.parse(atob(process.env.ENV!))
 
+    const hasPages = existsSync('./public')
+    if (!hasPages) {
+        await cmd(`cp -r ./initial-pages/. ./public`)
+    }
+
     // NEW: Release-specific logic
     if (env.component === 'release') {
         await handleReleaseReport(env);
@@ -320,77 +384,34 @@ async function run() {
     const componentLastHistory: string = `latest-history/${env.component}`
     const componentReportDir: string = `public/reports/${env.component}`
 
-    const hasPages = existsSync('./public')
-    if (!hasPages) {
-        await cmd(`cp -r ./initial-pages/. ./public`)
-    }
+    // Directory setup
+    await setupDirectories(tmpResultsDir, componentReportDir, componentLastHistory)
 
-    // cleanup
-    await cmd(`rm -rf ${tmpResultsDir}`)
+    // Process runners and get results
+    const {passed: executionPassed} = await processRunners(env, tmpResultsDir)
 
-    // directory setup
-    await cmd(`mkdir -p ${tmpResultsDir}`)
-    await cmd(`mkdir -p ${tmpResultsDir}/history`)
-    await cmd(`mkdir -p ${componentLastHistory}`)
-
-    let executionPassed = true
-    // partial results processor
-    getEnabledRunners(env).forEach(async (runner) => {
-        const partialResultDir: string = `tmp/${runner}`
-        try {
-            const {passed: runnerPassed} = preProcessAllure(partialResultDir, runner)
-            executionPassed = executionPassed && runnerPassed
-            await cmd(`cp -r ${partialResultDir}/. ${tmpResultsDir}`)
-        } catch (e) {
-            executionPassed = false
-            console.error(`Could not find '${partialResultDir}' allure results`, e)
-        }
-    })
-
-    // delete extra reports
-    const reportDirSubfolders: string[] = getSubfolders(componentReportDir)
-
-    // history dirs mapped to number ('./0', './1' ... './n')
-    const historyDirs: number[] = reportDirSubfolders
-        .filter((subfolder) => !isNaN(Number(subfolder)))
-        .map((subfolder => parseInt(subfolder)))
-        .sort((a, b) => a - b) // nodejs 🤷‍♂️
-
-    // number of entries to keep
-    const keepInHistory = 10
-
-    // deletes 'n' extra folders greater than the 'keepInHistory' variable
-    const extraReportsToDelete = historyDirs.length - (keepInHistory - 1)
-    for (let n = 0; n < extraReportsToDelete; n++) {
-        await cmd(`rm -rf ${componentReportDir}/${historyDirs[n]}`)
-    }
-
-    // gets the name of last folder
-    const nextReportId: number = historyDirs[historyDirs.length - 1] + 1 || 1
+    // Delete extra reports and get next report ID
+    const nextReportId = await cleanupOldReportsAndGetNextId(componentReportDir)
+    
     try {
-        // copy latest history for generation
+        // Copy latest history for generation
         await cmd(`cp -r ${componentLastHistory}/. ${tmpResultsDir}/history`)
     } catch (_) {
         console.warn("History not found, skipping.")
     }
 
-    // variables
-    const innerReportUrl = `${githubPage}reports/${env.component}/${nextReportId}`
-    const externalReportUrl = `${githubPage}${env.component}/${nextReportId}`
+    // Variables
+    const innerReportUrl = `./reports/${env.component}/${nextReportId}`
+    const externalReportUrl = `${externalBaseUrl}${env.component}/${nextReportId}`
 
-    // create environment files
-    generateEnvironmentFile(tmpResultsDir, env)
-    generateExecutorFile(tmpResultsDir, env, innerReportUrl)
-
-    // generate allure report
-    await cmd(`npx allure generate ${tmpResultsDir} -o ${componentReportDir}/${nextReportId}`)
-    postProcessAllure(`${componentReportDir}/${nextReportId}`)
+    // Generate Allure report
+    await generateAllureReport(tmpResultsDir, `${componentReportDir}/${nextReportId}`, env, innerReportUrl)
     generateRedirectPage(env.component, nextReportId)
 
-    // update latest history for the component
+    // Update latest history for the component
     await cmd(`cp -r ${componentReportDir}/${nextReportId}/history/. ${componentLastHistory}`)
 
-    // notify slack if execution failed
+    // Notify slack if execution failed
     if (!executionPassed) {
         await slack.sendSlackErrorMessage(externalReportUrl, env)
     }

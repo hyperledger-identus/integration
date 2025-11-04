@@ -1,8 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Release Information</title>
+    <link rel="stylesheet" href="../../static/bulma.css">
+    <link rel="stylesheet" href="../../static/custom.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
 <body>
+    <div class="container is-max-desktop">
+        <div class="section">
+            <h1 class="title">Release Information</h1>
+            
+            <div class="columns is-multiline" id="release-cards">
+                <!-- Release cards will be dynamically inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="../../static/main.js"></script>
     <script>
-        window.location.href = "0/?c=" + Date.now()
+        // Initialize release cards when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            // Wait for main.js to load, then initialize cards
+            setTimeout(() => {
+                if (window.ReleaseCardManager) {
+                    const cardManager = new window.ReleaseCardManager();
+                    cardManager.initialize('release-cards');
+                } else {
+                    console.error('ReleaseCardManager not found in main.js');
+                }
+            }, 100);
+        });
     </script>
 </body>
 </html>

@@ -10,6 +10,7 @@ env.json
 /sdk-kmp
 /sdk-swift
 /tmp
+/temp
 /public/static/README.md
 /env
 logs
