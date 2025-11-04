@@ -2,6 +2,34 @@
 
 This repository aggregates the result of end-to-end test between the new components and stable components.
 
+## 🚀 New Feature: Manual Integration Testing
+
+We now support **manual integration testing** that allows developers to trigger custom integration tests with specific component versions. This feature enables:
+
+- **Custom Version Combinations**: Test any combination of component versions
+- **Compatibility Validation**: Verify cross-component compatibility
+- **Regression Testing**: Ensure existing functionality works with new versions
+- **Historical Tracking**: Maintain a compatibility matrix over time
+
+### Quick Start
+
+**Via GitHub Actions** (Recommended):
+1. Go to **Actions** → **Manual Integration Tests**
+2. Click **"Run workflow"**
+3. Select components and enter versions
+4. Run the test
+
+**Via CLI**:
+```bash
+# Auto-detected as "sdk" mode (1 SDK)
+npm run manual -- --sdk-ts v1.0.0
+
+# Auto-detected as "all" mode (3 SDKs)
+npm run manual -- --sdk-ts v1.0.0 --sdk-swift v2.1.0 --sdk-kmp v0.5.0
+```
+
+📖 **[Full Documentation](docs/MANUAL_TESTING.md)** | 📋 **[Usage Guide](docs/MANUAL_TESTING_USAGE.md)**
+
 ## End-to-end test matrix
 
 | Flow                                | sdk-ts | sdk-swift | sdk-kmp |

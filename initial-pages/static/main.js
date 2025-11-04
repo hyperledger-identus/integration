@@ -71,6 +71,8 @@ document.addEventListener('DOMContentLoaded', () => {
     [`${basePath}release`]: `${basePath}reports/release/index.html`,
     [`${basePath}weekly`]: `${basePath}reports/weekly/index.html`,
     [`${basePath}weekly/{report}`]: `${basePath}reports/weekly/{report}/index.html`,
+    [`${basePath}manual`]: `${basePath}reports/manual/index.html`,
+    [`${basePath}manual/{report}`]: `${basePath}reports/manual/{report}/index.html`,
     [`${basePath}cloud-agent`]: `${basePath}reports/cloud-agent/index.html`,
     [`${basePath}cloud-agent/{report}`]: `${basePath}reports/cloud-agent/{report}/index.html`,
     [`${basePath}mediator`]: `${basePath}reports/mediator/index.html`,

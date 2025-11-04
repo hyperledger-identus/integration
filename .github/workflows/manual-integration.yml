@@ -1,0 +1,154 @@
+name: Manual Integration Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      
+      cloud_agent_version:
+        description: 'Cloud agent version (e.g., 2.0.0)'
+        required: false
+        default: ''
+        type: string
+
+      mediator_version:
+        description: 'Mediator version (e.g., 1.2.0)'
+        required: false
+        default: ''
+        type: string
+      
+      prism_node_version:
+        description: 'Prism node version (e.g., 2.5.0)'
+        required: false
+        default: 'v2.6.0'
+        type: string
+      
+      sdk_ts_version:
+        description: 'TypeScript SDK version (e.g., 7.0.0)'
+        required: false
+        default: ''
+        type: string
+      
+      sdk_swift_version:
+        description: 'Swift SDK version (e.g., 7.2.0)'
+        required: false
+        default: ''
+        type: string
+      
+      sdk_kmp_version:
+        description: 'Kotlin Multiplatform SDK version (e.g., 4.0.0)'
+        required: false
+        default: ''
+        type: string
+
+concurrency:
+  group: 'integration-lock'
+  cancel-in-progress: false
+
+jobs:
+  main:
+    name: "Trigger '${{ github.event.client_payload.component }}' integration"
+    runs-on: ubuntu-latest
+
+    outputs:
+      env: ${{ steps.components.outputs.env }}
+      sdk-ts: ${{ steps.components.outputs.sdk-ts }}
+      sdk-kmp: ${{ steps.components.outputs.sdk-kmp }}
+      sdk-swift: ${{ steps.components.outputs.sdk-swift }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Define runners
+        id: components
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMPONENT: ${{ github.event.client_payload.component }}
+          VERSION: ${{ github.event.client_payload.version }}
+          RUN_ID: ${{ github.run_id }}
+          CLOUD_AGENT_VERSION:  ${{ github.event.inputs.cloud_agent_version }}
+          MEDIATOR_VERSION:  ${{ github.event.inputs.mediator_version }}
+          SDK_TS_VERSION:  ${{ github.event.inputs.sdk_ts_version }}
+          SDK_KMP_VERSION:  ${{ github.event.inputs.sdk_kmp_version }}
+          SDK_SWIFT_VERSION:  ${{ github.event.inputs.sdk_swift_version }}
+        run: |
+          npm install
+          npm run environment:manual
+          ENV="$(cat env)"
+          echo "env=$ENV" >> "$GITHUB_OUTPUT"
+          echo "sdk-ts=$(echo $ENV | base64 --decode | jq -r '.runners.["sdk-ts"].enabled')" >> "$GITHUB_OUTPUT"
+          echo "sdk-kmp=$(echo $ENV | base64 --decode | jq -r '.runners.["sdk-kmp"].enabled')" >> "$GITHUB_OUTPUT"
+          echo "sdk-swift=$(echo $ENV | base64 --decode | jq -r '.runners.["sdk-swift"].enabled')" >> "$GITHUB_OUTPUT"
+          echo $ENV | base64 --decode
+
+  cloud-setup:
+    needs: main
+    name: Cloud setup
+    runs-on: ubuntu-latest
+    env:
+      ENV: ${{ needs.main.outputs.env }}
+      CLOUD_SERVICE_TOKEN: ${{ secrets.CLOUD_SERVICE_TOKEN }}
+      CLOUD_SERVICE_URL: ${{ secrets.CLOUD_SERVICE_URL }}
+      CLOUD_SERVICE_PROJECT: ${{ secrets.CLOUD_SERVICE_PROJECT }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup environment
+        run: |
+          npm install
+          npm run cloud:check
+          npm run cloud:setup
+
+  sdk-ts:
+    needs: [main, cloud-setup]
+    if: needs.main.outputs.sdk-ts  == 'true'
+    secrets: inherit
+    uses: ./.github/workflows/sdk-ts.yml
+    with:
+      ENV: ${{ needs.main.outputs.env }}
+
+  sdk-kmp:
+    needs: [main, cloud-setup]
+    if: false # needs.main.outputs.sdk-kmp  == 'true'
+    secrets: inherit
+    uses: ./.github/workflows/sdk-kmp.yml
+    with:
+      ENV: ${{ needs.main.outputs.env }}
+
+  sdk-swift:
+    needs: [main, cloud-setup]
+    if: needs.main.outputs.sdk-swift  == 'true'
+    secrets: inherit
+    uses: ./.github/workflows/sdk-swift.yml
+    with:
+      ENV: ${{ needs.main.outputs.env }}
+
+  generate-reports:
+    needs: [main, sdk-ts, sdk-kmp, sdk-swift]
+    if: always()
+    secrets: inherit
+    uses: ./.github/workflows/report.yml
+    permissions:
+      pages: write
+      id-token: write
+      contents: write
+      actions: read
+    with:
+      env: ${{ needs.main.outputs.env }}
+      run-id: ${{ github.run_id }}
+      component: ${{ github.event.client_payload.component }}
+      sdk-ts: ${{ needs.sdk-ts.result != 'skipped' }}
+      sdk-kmp: ${{ needs.sdk-kmp.result != 'skipped' }}
+      sdk-swift: ${{ needs.sdk-swift.result != 'skipped' }}

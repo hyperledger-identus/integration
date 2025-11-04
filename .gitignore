@@ -13,3 +13,5 @@ env.json
 /public/static/README.md
 /env
 logs
+
+coverage/

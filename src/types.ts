@@ -11,7 +11,8 @@ export const components = [
     'mediator',
     'prism-node',
     'weekly',
-    'release'
+    'release',
+    'manual'
 ] as const
 
 export const repos = [

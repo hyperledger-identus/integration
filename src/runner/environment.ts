@@ -10,12 +10,12 @@ import { sanitizeVersion, sanitizeComponent } from '../config/sanitization.js'
 async function run(): Promise<string> {
     // Validate environment variables
     const validatedEnv = validateEnvironment()
-    
+
     // Sanitize VERSION if provided
     if (process.env.VERSION) {
         process.env.VERSION = sanitizeVersion(process.env.VERSION)
     }
-    
+
     const octokit = new Octokit({
         auth: validatedEnv.GH_TOKEN
     })
@@ -95,6 +95,7 @@ async function run(): Promise<string> {
     }
 
     if (component == 'release') {
+        environment['releaseVersion'] = process.env.VERSION
         environment['services']['node']['version'] = '2.5.0'
         environment['services']['agent']['version'] = await getLatestReleaseTag('cloud-agent')
         environment['services']['mediator']['version'] = await getLatestReleaseTag('mediator')
@@ -155,6 +156,59 @@ async function run(): Promise<string> {
     return btoa(JSON.stringify(environment))
 }
 
+function manualRun() {
+    function initRunner(enabled: boolean, build: boolean, version: string) {
+        return {
+            enabled,
+            build,
+            version
+        }
+    }
+
+    validateEnvironment()
+
+    const environment: environment = {
+        component: 'manual',
+        workflow: {
+            runId: parseInt(process.env.RUN_ID!)
+        },
+        services: {
+            agent: {
+                version: process.env.CLOUD_AGENT_VERSION!
+            },
+            mediator: {
+                version: process.env.MEDIATOR_VERSION!
+            },
+            node: {
+                version: process.env.PRISM_NODE_VERSION!
+            }
+        },
+        runners: {
+            'sdk-ts': initRunner(false, false, ''),
+            'sdk-kmp': initRunner(false, false, ''),
+            'sdk-swift': initRunner(false, false, '')
+        }
+    }
+
+    if (process.env.SDK_TS_VERSION) {
+        environment['runners']['sdk-ts']['enabled'] = true
+        environment['runners']['sdk-ts']['version'] = process.env.SDK_TS_VERSION
+    }
+
+    if (process.env.SDK_KMP_VERSION) {
+        environment['runners']['sdk-kmp']['enabled'] = true
+        environment['runners']['sdk-kmp']['version'] = process.env.SDK_KMP_VERSION
+    }
+
+    if (process.env.SDK_SWIFT_VERSION) {
+        environment['runners']['sdk-swift']['enabled'] = true
+        environment['runners']['sdk-swift']['version'] = process.env.SDK_SWIFT_VERSION
+    }
+
+    const env = btoa(JSON.stringify(environment))
+    return env
+}
 export const env = {
-    run
+    run,
+    manualRun
 }

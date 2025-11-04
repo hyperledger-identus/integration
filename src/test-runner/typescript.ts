@@ -1,6 +1,6 @@
 import { TestRunner } from "./test-runner.js";
 import { cmd } from "../cmd.js";
-import { readFileSync, readSync } from "fs";
+import { readFileSync } from "fs";
 
 export class TypescriptSdk extends TestRunner {
     readonly name = "sdk-ts"
@@ -12,7 +12,7 @@ export class TypescriptSdk extends TestRunner {
     readonly testDir = `${this.repo}/integration-tests/e2e-tests`
     readonly allureResultsDirectory = `${this.testDir}/allure-results`
 
-    readonly runCommand = `npm run test:sdk -- --tags "@connection"`
+    readonly runCommand = `npm run test:sdk`
 
     protected sdkEnv() {
         return {

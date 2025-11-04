@@ -28,7 +28,14 @@ export function validateEnvironment(): EnvironmentConfig {
   const errors: ValidationError[] = []
 
   // Check required variables
-  const requiredVars = ['GH_TOKEN']
+  const requiredVars = [
+    'AGENT_URL', 
+    'MEDIATOR_OOB_URL', 
+    'GH_TOKEN',
+    'CLOUD_SERVICE_URL',
+    'CLOUD_SERVICE_PROJECT',
+    'CLOUD_SERVICE_TOKEN'
+  ]
   for (const varName of requiredVars) {
     if (!process.env[varName] || process.env[varName]?.trim() === '') {
       errors.push({
@@ -72,11 +79,20 @@ export function validateEnvironment(): EnvironmentConfig {
     })
   }
 
+    if (process.env.CLOUD_SERVICE_URL && !isValidUrl(process.env.CLOUD_SERVICE_URL)) {
+    errors.push({
+      field: 'AGENT_URL',
+      message: 'AGENT_URL must be a valid URL',
+      required: false
+    })
+  }
+
   // If there are required field errors, throw
   const requiredErrors = errors.filter(e => e.required)
   if (requiredErrors.length > 0) {
     const errorMessages = requiredErrors.map(e => `- ${e.message}`).join('\n')
-    throw new Error(`Environment validation failed:\n${errorMessages}`)
+    const error = `Environment validation failed:\n${errorMessages}`
+    throw new Error(error)
   }
 
   // Log warnings for optional field errors

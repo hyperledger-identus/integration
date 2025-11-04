@@ -95,7 +95,7 @@ interface TestStats {
 
 function generateReleaseMetadata(resultsDir: string, env: environment, testStats: TestStats) {
     const metadata: any = {
-        version: env.releaseVersion,
+        version: env.releaseVersion?.toString() || 'unknown',
         status: env.releaseVersion?.includes('-draft') ? 'draft' : 'released',
         components: {
             "cloud-agent": env.services.agent.version,
@@ -116,6 +116,77 @@ function generateReleaseMetadata(resultsDir: string, env: environment, testStats
     });
     
     writeFileSync(`${resultsDir}/release-info.json`, JSON.stringify(metadata, null, 2));
+}
+
+async function updateReleasesManifest(componentReportDir: string, releaseVersion: string) {
+    const manifestPath = `${componentReportDir}/releases.json`;
+    let releases: any[] = [];
+    
+    // Read existing manifest if it exists
+    if (existsSync(manifestPath)) {
+        try {
+            const manifestData = readFileSync(manifestPath, 'utf-8');
+            releases = JSON.parse(manifestData);
+        } catch (error) {
+            console.warn('Failed to read existing releases manifest, creating new one');
+        }
+    }
+    
+    // Check if this version already exists
+    const existingIndex = releases.findIndex(r => r.version === releaseVersion);
+    const releaseInfo = {
+        version: releaseVersion,
+        path: `./${releaseVersion}/index.html`,
+        lastUpdated: new Date().toISOString().split('T')[0]
+    };
+    
+    if (existingIndex >= 0) {
+        // Update existing entry
+        releases[existingIndex] = releaseInfo;
+    } else {
+        // Add new entry
+        releases.push(releaseInfo);
+    }
+    
+    // Sort releases by version (newest first)
+    releases.sort((a, b) => {
+        const aVersion = parseVersion(a.version);
+        const bVersion = parseVersion(b.version);
+        
+        if (aVersion && bVersion) {
+            return bVersion.compare(aVersion);
+        }
+        
+        return b.version.localeCompare(a.version);
+    });
+    
+    // Write updated manifest
+    writeFileSync(manifestPath, JSON.stringify(releases, null, 2));
+}
+
+function parseVersion(version: string) {
+    const match = version.match(/^(\d+)\.(\d+)(?:\.(\d+))?(?:-(.+))?$/);
+    if (!match) return null;
+    
+    const [, major, minor, patch, prerelease] = match;
+    return {
+        major: parseInt(major),
+        minor: parseInt(minor),
+        patch: parseInt(patch || '0'),
+        prerelease: prerelease || null,
+        compare(other: any) {
+            if (this.major !== other.major) return this.major - other.major;
+            if (this.minor !== other.minor) return this.minor - other.minor;
+            if (this.patch !== other.patch) return this.patch - other.patch;
+            
+            if (this.prerelease && !other.prerelease) return -1;
+            if (!this.prerelease && other.prerelease) return 1;
+            if (this.prerelease && other.prerelease) {
+                return this.prerelease.localeCompare(other.prerelease);
+            }
+            return 0;
+        }
+    };
 }
 
 function preProcessAllure(resultsDir: string, runner: runner): {passed: boolean, stats: TestStats} {
@@ -223,6 +294,12 @@ async function handleReleaseReport(env: environment) {
     
     await cmd(`npx allure generate ${tmpResultsDir} -o ${componentReportDir}/${releaseVersion}`)
     postProcessAllure(`${componentReportDir}/${releaseVersion}`)
+    
+    // Copy release-info.json to the output directory
+    await cmd(`cp ${tmpResultsDir}/release-info.json ${componentReportDir}/${releaseVersion}/`)
+    
+    // Update releases.json manifest
+    await updateReleasesManifest(componentReportDir, releaseVersion)
     
     // Notify slack if execution failed
     if (!executionPassed) {
