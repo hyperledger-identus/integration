@@ -16,6 +16,7 @@ const htmlTemplate = `<!DOCTYPE html>
         // Update parent URL if we're in an iframe
         if (window.parent && window.parent !== window) {
             window.parent.history.pushState({page: '/__COMPONENT__/__PAGE__'}, '', '/__COMPONENT__/__PAGE__');
+            window.parent.dispatchEvent(new PopStateEvent('popstate', { state: {page: '/__COMPONENT__/__PAGE__'} }));
         }
         
         // Navigate to the actual report
@@ -90,7 +91,7 @@ function getSubfolders(dir: string): string[] {
     }
 }
 
-function postProcessAllure(reportPath: string) {
+function postProcessAllure(reportPath: string, env: environment, currentReportId: number) {
     let appJs = readFileSync(`${reportPath}/app.js`).toString()
     appJs = appJs.replace(
         `return'                    <a class="link" href="'+a(i(null!=e?s(e,"buildUrl"):e,e))`,
@@ -99,8 +100,26 @@ function postProcessAllure(reportPath: string) {
 
     appJs = appJs.replace(
         `.attr("xlink:href",(function(t){return t.reportUrl}))`,
-        `.attr("xlink:href",(function(t){return window.basePath + t.reportUrl}))`
+        `.attr("xlink:href",(function(t){return window.basePath + t.reportUrl}))
+         .on("click", (function(e,t){
+            event.preventDefault();
+            
+            // Extract component and report ID
+            const parts = t.reportUrl.match(/\\.\\/reports\\/([^\\/]+)\\/(\\d+)/);
+            if (parts) {
+                const [, component, reportId] = parts;
+                
+                // Send navigation message to SPA
+                parent.postMessage({
+                    type: 'navigation',
+                    component: component,
+                    reportId: reportId
+                }, '*');
+            }
+               
+         }))`
     )
+    
     writeFileSync(`${reportPath}/app.js`, appJs)
 }
 
@@ -311,13 +330,14 @@ async function generateAllureReport(
     tmpResultsDir: string, 
     outputDir: string, 
     env: environment, 
-    innerReportUrl: string
+    innerReportUrl: string,
+    currentReportId: number
 ): Promise<void> {
     generateEnvironmentFile(tmpResultsDir, env)
     generateExecutorFile(tmpResultsDir, env, innerReportUrl)
     
     await cmd(`npx allure generate ${tmpResultsDir} -o ${outputDir} --clean`)
-    postProcessAllure(outputDir)
+    postProcessAllure(outputDir, env, currentReportId)
 }
 
 async function setupDirectories(
@@ -383,7 +403,7 @@ async function handleReleaseReport(env: environment) {
     const innerReportUrl = `/reports/release/${releaseVersion}`
     const externalReportUrl = `${externalBaseUrl}release/${releaseVersion}`
     
-    await generateAllureReport(tmpResultsDir, `${componentReportDir}/${releaseVersion}`, env, innerReportUrl)
+    await generateAllureReport(tmpResultsDir, `${componentReportDir}/${releaseVersion}`, env, innerReportUrl, 0)
     
     // Copy release-info.json to output directory
     await cmd(`cp ${tmpResultsDir}/release-info.json ${componentReportDir}/${releaseVersion}/`)
@@ -436,7 +456,7 @@ async function run() {
     const externalReportUrl = `${externalBaseUrl}${env.component}/${nextReportId}`
 
     // Generate Allure report
-    await generateAllureReport(tmpResultsDir, `${componentReportDir}/${nextReportId}`, env, innerReportUrl)
+    await generateAllureReport(tmpResultsDir, `${componentReportDir}/${nextReportId}`, env, innerReportUrl, nextReportId)
     
     // Generate redirect page to latest report
     generateRedirectPage(env.component, nextReportId)

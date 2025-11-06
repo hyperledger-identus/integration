@@ -4,6 +4,9 @@ window.SpaRouter = class SpaRouter {
     this.contentFrame = document.getElementById('content-iframe');
     this.basePath = window.AppConfig.getBasePath();
     this.routes = RouteMatcher.getRoutes();
+    
+    // Setup message listener for Allure navigation
+    this.setupIframeMessageListener();
   }
 
   // Load content for a given path
@@ -32,10 +35,7 @@ window.SpaRouter = class SpaRouter {
       this.contentFrame.contentWindow.location.replace(this.routes[path] + "?c=" + Date.now());
     }
     
-    // Inject communication script for iframe navigation monitoring
-    if (window.IframeMessenger) {
-      window.IframeMessenger.injectCommunicationScript(this.contentFrame);
-    }
+    // Communication script injection removed - using simplified approach
     
     // Update breadcrumbs after loading content
     if (window.appInstances && window.appInstances.breadcrumbManager) {
@@ -95,6 +95,44 @@ window.SpaRouter = class SpaRouter {
           this.contentWindow.basePath = window.basePath;
         }
       };
+    }
+  }
+
+  // Setup message listener for Allure navigation
+  setupIframeMessageListener() {
+    if (window.IframeMessenger) {
+      window.IframeMessenger.setupMessageListener((message) => {
+        debugger;
+        if (message.type === 'navigation') {
+          console.log('SPA Router received navigation message:', message);
+          
+          const COMPONENT_PATH_MAP = {
+            'sdk-ts': 'typescript',
+            'sdk-swift': 'swift',
+            'sdk-kmp': 'kotlin',
+            'cloud-agent': 'cloud-agent',
+            'mediator': 'mediator',
+            'weekly': 'weekly',
+            'release': 'release',
+            'manual': 'manual'
+          };
+
+          // Construct the target path
+          const spaRoute = COMPONENT_PATH_MAP[message.component]
+          const targetPath = `${window.basePath}${spaRoute}/${message.reportId}`;
+          
+          // Update browser history and URL
+          window.history.pushState({page: targetPath}, '', targetPath);
+          
+          // Update breadcrumbs
+          if (window.appInstances && window.appInstances.breadcrumbManager) {
+            window.appInstances.breadcrumbManager.updateBreadcrumb(targetPath);
+          }
+          
+          // Load the content
+          this.loadContent(targetPath);
+        }
+      });
     }
   }
 };
