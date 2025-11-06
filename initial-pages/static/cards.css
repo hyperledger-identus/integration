@@ -1,0 +1,20 @@
+.truncate-text {
+  display: block; 
+  max-width: 8ch; 
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+@media (prefers-color-scheme: dark) {
+  .tag.is-info {
+    background-color: hsl(204, 70%, 35%);
+    color: #fff; 
+  }
+
+  .tag.is-light {
+    background-color: hsl(0, 0%, 25%);
+    color: hsl(0, 0%, 90%);
+  }
+}

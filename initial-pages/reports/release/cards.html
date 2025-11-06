@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Release Information</title>
+  <link rel="stylesheet" href="../../static/bulma.css">
+  <link rel="stylesheet" href="../../static/cards.css">
+</head>
+
+<body>
+  <div class="container is-fluid">
+    <div class="section">
+      <div class="columns is-multiline" id="release-cards">
+        <!-- Release cards will be dynamically inserted here -->
+      </div>
+    </div>
+  </div>
+
+  <script src="../../static/js/utils/dom-utils.js"></script>
+  <script src="../../static/js/components/release-card-manager.js"></script>
+  <script>
+    // Simple release card initialization for iframe content
+    document.addEventListener('DOMContentLoaded', () => {
+      // Create a simple ReleaseCardManager that doesn't depend on AppConfig
+      class SimpleReleaseCardManager {
+        constructor() {
+          this.cardsContainer = document.getElementById('release-cards');
+          this.basePath = window.location.host.includes('localhost') ? "/" : "/integration/";
+        }
+
+        async initialize(containerId) {
+          this.cardsContainer = document.getElementById(containerId);
+          if (!this.cardsContainer) {
+            console.error(`Container with id '${containerId}' not found`);
+            return;
+          }
+
+          await this.loadReleases();
+        }
+
+        async loadReleases() {
+          try {
+            const response = await fetch(`./releases.json?c=${Date.now()}`);
+            if (response.ok) {
+              const releasesList = await response.json();
+              const releases = [];
+
+              for (const release of releasesList) {
+                try {
+                  const dataResponse = await fetch(`./${release.version}/release-info.json?c=${Date.now()}`);
+                  if (dataResponse.ok) {
+                    const data = await dataResponse.json();
+                    releases.push({
+                      version: release.version,
+                      path: `./${release.version}/index.html`,
+                      data
+                    });
+                  }
+                } catch (error) {
+                  console.log(`Release ${release.version} missing release-info.json`);
+                }
+              }
+
+              // Sort releases by version (newest first)
+              releases.sort((a, b) => this.compareVersions(b.version, a.version));
+
+              // Create cards for each release
+              for (const release of releases) {
+                const card = await this.createReleaseCard(release);
+                this.cardsContainer.appendChild(card);
+              }
+
+              // Show message if no releases found
+              if (releases.length === 0) {
+                this.showNoReleasesMessage();
+              }
+            } else {
+              this.showNoReleasesMessage();
+            }
+          } catch (error) {
+            console.error('Error loading releases:', error);
+            this.showErrorMessage();
+          }
+        }
+
+        async createReleaseCard(release) {
+          const column = document.createElement('div');
+          column.className = 'column is-12-mobile is-6-tablet is-3-desktop';
+
+          const card = document.createElement('div');
+          card.className = 'card is-clickable';
+          card.style.cursor = 'pointer';
+
+          const statusClass = release.data.status === 'released' ? 'is-success' : 'is-warning';
+          const statusText = release.data.status === 'released' ? 'Released' : 'In Progress';
+
+          // Generate component version tags
+          const componentTags = Object.entries(release.data.components).map(([name, version]) =>
+            `
+                        <div class="control"> <div class="tags has-addons">
+                            <span class="tag">${name}</span>
+                            <span class="tag is-info version">
+                              <span class="truncate-text ">${version}</span>
+                            </span>
+                          </div>
+                        </div>`
+          ).join(' ');
+
+          // Generate SDK runner version tags
+          const sdkTags = Object.entries(release.data.runners).map(([name, version]) =>
+            `<div class="control"> <div class="tags has-addons">
+                            <span class="tag">${name}</span>
+                            <span class="tag is-info version">
+                              <span class="truncate-text">${version}</span>
+                            </span>
+                          </div>
+                        </div>`
+          ).join(' ');
+
+          card.innerHTML = `
+                      <header class="card-header">
+                        <p class="card-header-title">
+                          <span class="tag ${statusClass} mr-2">${statusText}</span>
+                          <span class="is-size-6">${release.version}</span>
+                        </p>
+                      </header>
+                      <div class="card-content">
+                        <div class="content">
+                          <div class="field is-grouped is-grouped-multiline">
+                            <div class="control">
+                              <div class="tags has-addons">
+                                <span class="tag">Passed</span>
+                                <span class="tag is-success">${release.data.testResults.passed}</span>
+                              </div>
+                            </div>
+                            <div class="control">
+                              <div class="tags has-addons">
+                                <span class="tag">Failed</span>
+                                <span class="tag is-danger">${release.data.testResults.failed}</span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                            <div class="field is-grouped is-grouped-multiline is-align-items-center">
+                                  ${componentTags}
+                                  ${sdkTags}
+                          </div>
+                          <p class="has-text-grey is-size-7">${release.data.lastUpdated}</p>
+                        </div>
+                      </div>
+                    `;
+
+          // Add click handler to navigate to release detail
+          card.addEventListener('click', () => {
+            this.handleReleaseClick(release);
+          });
+
+          column.appendChild(card);
+          return column;
+        }
+
+        handleReleaseClick(release) {
+          const targetPath = `${this.basePath}release/${release.version}`;
+
+          // Navigate in parent window (main SPA)
+          if (window.parent && window.parent !== window) {
+            window.parent.history.pushState({ page: targetPath }, '', targetPath);
+            window.parent.loadContent(targetPath);
+          }
+        }
+
+        showNoReleasesMessage() {
+          this.cardsContainer.innerHTML = `
+                      <div class="column is-12">
+                        <div class="notification is-info">
+                          <strong>No releases found.</strong> Release directories will appear here when available.
+                        </div>
+                      </div>
+                    `;
+        }
+
+        showErrorMessage() {
+          this.cardsContainer.innerHTML = `
+                      <div class="column is-12">
+                        <div class="notification is-danger">
+                          <strong>Error loading releases.</strong> Please try refreshing the page.
+                        </div>
+                      </div>
+                    `;
+        }
+
+        compareVersions(a, b) {
+          const aParts = a.split('.').map(Number);
+          const bParts = b.split('.').map(Number);
+
+          for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
+            const aPart = aParts[i] || 0;
+            const bPart = bParts[i] || 0;
+
+            if (aPart > bPart) return 1;
+            if (aPart < bPart) return -1;
+          }
+
+          return 0;
+        }
+      }
+
+      // Initialize simple card manager
+      const cardManager = new SimpleReleaseCardManager();
+      cardManager.initialize('release-cards');
+    });
+  </script>
+</body>
+
+</html>
