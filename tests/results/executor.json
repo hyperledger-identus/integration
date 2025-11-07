@@ -1,8 +1,0 @@
-{
-  "reportName": "mediator Integration",
-  "reportUrl": "./reports/mediator/1",
-  "name": "identus-integration",
-  "type": "github",
-  "buildName": null,
-  "buildUrl": "https://github.com/hyperledger-identus/integration/actions/runs/null"
-}
