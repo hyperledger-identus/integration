@@ -4,9 +4,6 @@ window.SpaRouter = class SpaRouter {
     this.contentFrame = document.getElementById('content-iframe');
     this.basePath = window.AppConfig.getBasePath();
     this.routes = RouteMatcher.getRoutes();
-    
-    // Setup message listener for Allure navigation
-    this.setupIframeMessageListener();
   }
 
   // Load content for a given path
@@ -16,31 +13,33 @@ window.SpaRouter = class SpaRouter {
       path = path.slice(0, -1);
     }
 
+    console.log('SpaRouter: loadContent called with path:', path);
     // Check if we're in the main SPA context (has iframe) or direct page
     if (this.contentFrame) {
+      console.log('SpaRouter: Loading in iframe');
       // Main SPA context - use iframe
       this.loadInIframe(path);
     } else {
+      console.log('SpaRouter: Loading directly (no iframe)');
       // Direct page context - navigate the main window
       this.loadDirectly(path);
     }
   }
 
   loadInIframe(path) {
+    console.log('SpaRouter: loadInIframe called with path:', path);
     let route;
     if (!RouteMatcher.hasRoute(path)) {
       route = RouteMatcher.matchRoute(path);
+      console.log('SpaRouter: Route not found, matched to:', route);
       this.contentFrame.contentWindow.location.replace(route + "?c=" + Date.now());
     } else {
+      console.log('SpaRouter: Route found:', this.routes[path]);
       this.contentFrame.contentWindow.location.replace(this.routes[path] + "?c=" + Date.now());
     }
     
     // Communication script injection removed - using simplified approach
-    
-    // Update breadcrumbs after loading content
-    if (window.appInstances && window.appInstances.breadcrumbManager) {
-      window.appInstances.breadcrumbManager.updateBreadcrumb(path);
-    }
+    // Breadcrumb updates are now handled by NavigationHandler to avoid duplicates
   }
 
   loadDirectly(path) {
@@ -98,41 +97,5 @@ window.SpaRouter = class SpaRouter {
     }
   }
 
-  // Setup message listener for Allure navigation
-  setupIframeMessageListener() {
-    if (window.IframeMessenger) {
-      window.IframeMessenger.setupMessageListener((message) => {
-        debugger;
-        if (message.type === 'navigation') {
-          console.log('SPA Router received navigation message:', message);
-          
-          const COMPONENT_PATH_MAP = {
-            'sdk-ts': 'typescript',
-            'sdk-swift': 'swift',
-            'sdk-kmp': 'kotlin',
-            'cloud-agent': 'cloud-agent',
-            'mediator': 'mediator',
-            'weekly': 'weekly',
-            'release': 'release',
-            'manual': 'manual'
-          };
 
-          // Construct the target path
-          const spaRoute = COMPONENT_PATH_MAP[message.component]
-          const targetPath = `${window.basePath}${spaRoute}/${message.reportId}`;
-          
-          // Update browser history and URL
-          window.history.pushState({page: targetPath}, '', targetPath);
-          
-          // Update breadcrumbs
-          if (window.appInstances && window.appInstances.breadcrumbManager) {
-            window.appInstances.breadcrumbManager.updateBreadcrumb(targetPath);
-          }
-          
-          // Load the content
-          this.loadContent(targetPath);
-        }
-      });
-    }
-  }
 };

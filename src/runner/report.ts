@@ -15,8 +15,13 @@ const htmlTemplate = `<!DOCTYPE html>
         
         // Update parent URL if we're in an iframe
         if (window.parent && window.parent !== window) {
-            window.parent.history.pushState({page: '/__COMPONENT__/__PAGE__'}, '', '/__COMPONENT__/__PAGE__');
-            window.parent.dispatchEvent(new PopStateEvent('popstate', { state: {page: '/__COMPONENT__/__PAGE__'} }));
+            window.parent.history.replaceState({page: '/__COMPONENT__/__PAGE__'}, '', '/__COMPONENT__/__PAGE__');
+            
+            // Send navigation message to update breadcrumbs and content
+            parent.postMessage({
+                type: 'iframeNavigation',
+                path: '/__COMPONENT__/__PAGE__'
+            }, '*');
         }
         
         // Navigate to the actual report
@@ -109,11 +114,21 @@ function postProcessAllure(reportPath: string, env: environment, currentReportId
             if (parts) {
                 const [, component, reportId] = parts;
                 
+                const COMPONENT_PATH_MAP = {
+                    'sdk-ts': 'typescript',
+                    'sdk-swift': 'swift',
+                    'sdk-kmp': 'kotlin',
+                    'cloud-agent': 'cloud-agent',
+                    'mediator': 'mediator',
+                    'weekly': 'weekly',
+                    'release': 'release',
+                    'manual': 'manual'
+                };
+
                 // Send navigation message to SPA
                 parent.postMessage({
-                    type: 'navigation',
-                    component: component,
-                    reportId: reportId
+                    type: 'iframeNavigation',
+                    path: window.basePath + COMPONENT_PATH_MAP[component] + '/' + reportId
                 }, '*');
             }
                

@@ -2,6 +2,16 @@
 <html lang="en">
 <body>
     <script>
+        // Update parent URL if we're in an iframe
+        if (window.parent && window.parent !== window) {
+            window.parent.history.replaceState({page: '/weekly/0'}, '', '/weekly/0');
+            
+            // Send navigation message to update breadcrumbs and content
+            parent.postMessage({
+                type: 'iframeNavigation',
+                path: '/manual/0'
+            }, '*');
+        }
         window.location.href = "0/?c=" + Date.now()
     </script>
 </body>

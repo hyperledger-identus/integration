@@ -44,8 +44,8 @@ document.addEventListener('DOMContentLoaded', () => {
       window.appInstances.navigationHandler.handleNavigation(event, target);
     };
 
-    window.updateBreadcrumb = (path) => {
-      window.appInstances.breadcrumbManager.updateBreadcrumb(path);
+    window.updateBreadcrumb = () => {
+      window.appInstances.breadcrumbManager.updateBreadcrumb(window.location.pathname);
     };
 
     console.log('🎉 SPA Application initialized successfully!');

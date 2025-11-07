@@ -116,31 +116,6 @@ npx tsx test/mockrunner/run-mock-tests.ts --scenario all-passing
 npx tsx test/mockrunner/run-mock-tests.ts --list-scenarios
 ```
 
-### Test Features
-
-- **Realistic Data Generation**: Mock services generate realistic test data matching production formats
-- **Error Simulation**: Comprehensive error scenario testing including network failures, API errors, and service outages
-- **Performance Testing**: Large test set handling and concurrent operation testing
-- **End-to-End Workflows**: Complete integration workflow validation from test execution through notification
-- **Component Matrix Testing**: Validates all component combinations and version interactions
-
-### Mock Service APIs
-
-**MockSlackServer**:
-- HTTP server on random port for webhook testing
-- Message validation and request capture
-- Async event emission for test synchronization
-
-**MockGitHubAPI**:
-- Release and commit data simulation
-- Semantic version validation
-- Repository-specific test data
-
-**MockCloudService**:
-- Environment management operations
-- Service restart simulation
-- Failure scenario injection
-
 ## Usage
 
 ```bash

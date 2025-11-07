@@ -62,23 +62,36 @@ window.NavigationHandler = class NavigationHandler {
         return;
       }
       
-      console.log('Processing iframe navigation:', newPath);
+      console.log('NavigationHandler: handleIframeMessage called');
+      console.log('NavigationHandler: Current window.location.pathname:', window.location.pathname);
+      console.log('NavigationHandler: newPath from iframe message:', newPath);
       
       // Update browser URL to match iframe content
       if (newPath !== window.location.pathname) {
         history.pushState({ page: newPath }, '', newPath);
-        console.log('Updated browser URL to:', newPath);
+        console.log('NavigationHandler: Updated browser URL to:', newPath);
+      } else {
+        console.log('NavigationHandler: URL already matches, no update needed');
       }
       
       // Update breadcrumbs to reflect actual iframe content
+      console.log('NavigationHandler: Calling updateBreadcrumb with path:', newPath);
       this.updateBreadcrumb(newPath);
+      
+      // Load the content in the iframe
+      console.log('NavigationHandler: Calling spaRouter.loadContent with path:', newPath);
+      this.spaRouter.loadContent(newPath);
     }
   }
 
   // Update breadcrumb
   updateBreadcrumb(path) {
+    console.log('NavigationHandler: updateBreadcrumb called with path:', path);
     if (this.breadcrumbManager) {
+      console.log('NavigationHandler: breadcrumbManager exists, calling updateBreadcrumb');
       this.breadcrumbManager.updateBreadcrumb(path);
+    } else {
+      console.log('NavigationHandler: breadcrumbManager does not exist');
     }
   }
 

@@ -11,12 +11,6 @@ window.BreadcrumbManager = class BreadcrumbManager {
   }
 
   setupEventListeners() {
-    // Listen for popstate events to handle browser navigation
-    this.popstateCleanup = DomUtils.addEventListenerWithCleanup(window, 'popstate', () => {
-      console.log('popstate event fired');
-      this.updateBreadcrumb(window.location.pathname);
-    });
-    
     // Listen for hash changes
     this.hashchangeCleanup = DomUtils.addEventListenerWithCleanup(window, 'hashchange', () => {
       console.log('hashchange event fired');
@@ -25,11 +19,13 @@ window.BreadcrumbManager = class BreadcrumbManager {
   }
 
   updateBreadcrumb(path) {
-    console.log('updateBreadcrumb called with path:', path);
+    console.log('BreadcrumbManager: updateBreadcrumb called with path:', path);
     if (!this.breadcrumbsElement) return;
 
     const basePath = window.AppConfig.getBasePath();
+    console.log('BreadcrumbManager: basePath:', basePath);
     const pathParts = path.replace(basePath, '').split('/').filter(part => part);
+    console.log('BreadcrumbManager: pathParts after parsing:', pathParts);
 
     if (pathParts.length === 0) {
       // Home page - hide breadcrumb
@@ -50,6 +46,8 @@ window.BreadcrumbManager = class BreadcrumbManager {
         currentPath += '/' + part;
         const isLast = index === pathParts.length - 1;
         
+        console.log(`BreadcrumbManager: Processing part ${index}: "${part}" (currentPath: "${currentPath}", isLast: ${isLast})`);
+        
         let displayName;
         if (index === 0) {
           // First level - category or component
@@ -63,6 +61,8 @@ window.BreadcrumbManager = class BreadcrumbManager {
           displayName = part;
         }
         
+        console.log(`BreadcrumbManager: displayName for part ${index}: "${displayName}"`);
+        
         if (isLast) {
           breadcrumbHTML += `<li class="is-active"><a href="#" class="breadcrumb-item" aria-current="page">${displayName}</a></li>`;
         } else {
@@ -71,7 +71,9 @@ window.BreadcrumbManager = class BreadcrumbManager {
       });
       
       breadcrumbHTML += '</ul></nav>';
+      console.log('BreadcrumbManager: Final breadcrumbHTML:', breadcrumbHTML);
       this.breadcrumbsElement.innerHTML = breadcrumbHTML;
+      console.log('BreadcrumbManager: Breadcrumb element innerHTML set successfully');
       
       this.addBreadcrumbClickHandlers();
     }

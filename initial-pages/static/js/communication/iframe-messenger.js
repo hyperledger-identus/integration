@@ -4,8 +4,8 @@ window.IframeMessenger = {
   setupMessageListener(callback) {
     const messageHandler = (event) => {
       // Only handle specific navigation messages from Allure
-      if (event.data && event.data.type === 'navigation') {
-        console.log('Allure navigation detected:', event.data);
+      if (event.data && event.data.type === 'iframeNavigation') {
+        console.log('Iframe navigation detected:', event.data);
         callback(event.data);
       }
     };
