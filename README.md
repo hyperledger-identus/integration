@@ -20,6 +20,7 @@ We now support **manual integration testing** that allows developers to trigger 
 4. Run the test
 
 **Via CLI**:
+
 ```bash
 # Auto-detected as "sdk" mode (1 SDK)
 npm run manual -- --sdk-ts v1.0.0
@@ -27,8 +28,6 @@ npm run manual -- --sdk-ts v1.0.0
 # Auto-detected as "all" mode (3 SDKs)
 npm run manual -- --sdk-ts v1.0.0 --sdk-swift v2.1.0 --sdk-kmp v0.5.0
 ```
-
-📖 **[Full Documentation](docs/MANUAL_TESTING.md)** | 📋 **[Usage Guide](docs/MANUAL_TESTING_USAGE.md)**
 
 ## End-to-end test matrix
 

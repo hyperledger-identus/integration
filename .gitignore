@@ -18,3 +18,4 @@ env.json
 logs
 
 coverage/
+public/

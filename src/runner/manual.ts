@@ -10,9 +10,8 @@ export interface ManualEnvironmentConfig {
 export function generateManualEnvironment(config: ManualEnvironmentConfig): environment {
   const { runId, timestamp, payload } = config
 
-  // Create manual-specific environment based on the existing structure
   const manualEnv: environment = {
-    component: 'release' as component, // Use 'release' as base for manual runs
+    component: 'manual',
     releaseVersion: timestamp,
     workflow: {
       runId: parseInt(runId.replace(/\D/g, '').slice(0, 10)) || Date.now()
