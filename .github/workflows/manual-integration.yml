@@ -46,7 +46,7 @@ concurrency:
 
 jobs:
   main:
-    name: "Trigger '${{ github.event.client_payload.component }}' integration"
+    name: "Trigger 'manual' integration"
     runs-on: ubuntu-latest
 
     outputs:
@@ -148,7 +148,7 @@ jobs:
     with:
       env: ${{ needs.main.outputs.env }}
       run-id: ${{ github.run_id }}
-      component: ${{ github.event.client_payload.component }}
+      component: manual
       sdk-ts: ${{ needs.sdk-ts.result != 'skipped' }}
       sdk-kmp: ${{ needs.sdk-kmp.result != 'skipped' }}
       sdk-swift: ${{ needs.sdk-swift.result != 'skipped' }}
