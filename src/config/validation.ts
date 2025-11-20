@@ -239,15 +239,34 @@ export function validateCloudOnlyEnvironment(): EnvironmentConfig {
  * Validates environment for integration testing
  */
 export function validateIntegrationEnvironment(): EnvironmentConfig {
-  const env = validateBaseEnvironment()
   const errors: ValidationError[] = []
 
-  // Additional validation for integration runner
-  if (!env.COMPONENT) {
+  // Check only integration-specific required variables
+  // COMPONENT is required unless ENV is provided (which contains component data)
+  if (!process.env.COMPONENT || process.env.COMPONENT?.trim() === '') {
+    if (!process.env.ENV) {
+      errors.push({
+        field: 'COMPONENT',
+        message: 'COMPONENT environment variable is required for integration runner when ENV is not provided',
+        required: true
+      })
+    }
+  }
+
+  // Check optional variables with validation
+  if (process.env.SLACK_WEBHOOK && !isValidUrl(process.env.SLACK_WEBHOOK)) {
     errors.push({
-      field: 'COMPONENT',
-      message: 'COMPONENT environment variable is required for integration runner',
-      required: true
+      field: 'SLACK_WEBHOOK',
+      message: 'SLACK_WEBHOOK must be a valid URL',
+      required: false
+    })
+  }
+
+  if (process.env.RUN_ID && !isValidNumber(process.env.RUN_ID)) {
+    errors.push({
+      field: 'RUN_ID',
+      message: 'RUN_ID must be a valid number',
+      required: false
     })
   }
 
@@ -283,7 +302,20 @@ export function validateIntegrationEnvironment(): EnvironmentConfig {
     console.warn(`Integration environment validation warnings:\n${warningMessages}`)
   }
 
-  return env
+  return {
+    SLACK_WEBHOOK: process.env.SLACK_WEBHOOK,
+    DEBUG: process.env.DEBUG,
+    CI: process.env.CI,
+    COMPONENT: process.env.COMPONENT,
+    VERSION: process.env.VERSION,
+    RUN_ID: process.env.RUN_ID,
+    RELEASE_VERSION: process.env.RELEASE_VERSION,
+    MEDIATOR_OOB_URL: process.env.MEDIATOR_OOB_URL,
+    AGENT_URL: process.env.AGENT_URL,
+    CLOUD_SERVICE_URL: process.env.CLOUD_SERVICE_URL,
+    CLOUD_SERVICE_PROJECT: process.env.CLOUD_SERVICE_PROJECT,
+    CLOUD_SERVICE_TOKEN: process.env.CLOUD_SERVICE_TOKEN
+  }
 }
 
 /**
