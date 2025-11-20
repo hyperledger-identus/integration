@@ -1,9 +1,9 @@
 import { environment } from "../types.js"
-import { validateCloudEnvironment } from "../config/validation.js"
+import { validateCloudOnlyEnvironment } from "../config/validation.js"
 
 async function run(trigger: 'check' | 'setup') {
     // Validate cloud environment variables
-    const validatedEnv = validateCloudEnvironment()
+    const validatedEnv = validateCloudOnlyEnvironment()
     
     const env: environment = JSON.parse(atob(process.env.ENV!))
     const cloudAgentVersion = env.services.agent.version
