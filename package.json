@@ -14,20 +14,22 @@
     "yargs": "^17.7.2"
   },
   "devDependencies": {
+    "@types/jsdom": "^27.0.0",
     "@types/node": "^22.5.0",
     "@types/yargs": "^17.0.33",
     "allure-commandline": "^2.30.0",
-    "ts-node": "^10.9.2",
     "tsx": "^4.17.0",
     "typescript": "^5.5.4"
   },
   "scripts": {
     "environment": "npx tsx src/cli/environment",
+    "environment:manual": "npx tsx src/cli/environment-manual",
     "docker:start": "npx tsx src/cli/docker.ts start",
     "docker:stop": "npx tsx src/cli/docker.ts stop",
     "cloud:setup": "npx tsx src/cli/cloud.ts setup",
     "cloud:check": "npx tsx src/cli/cloud.ts check",
     "integration": "npx tsx src/cli/integration",
-    "report": "npx tsx src/cli/report"
+    "report": "npx tsx src/cli/report",
+    "manual": "npx tsx src/cli/manual.ts"
   }
 }

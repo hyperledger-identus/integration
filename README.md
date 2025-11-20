@@ -2,12 +2,85 @@
 
 This repository aggregates the result of end-to-end test between the new components and stable components.
 
+## 🚀 New Feature: Manual Integration Testing
+
+We now support **manual integration testing** that allows developers to trigger custom integration tests with specific component versions. This feature enables:
+
+- **Custom Version Combinations**: Test any combination of component versions
+- **Compatibility Validation**: Verify cross-component compatibility
+- **Regression Testing**: Ensure existing functionality works with new versions
+- **Historical Tracking**: Maintain a compatibility matrix over time
+
+### Quick Start
+
+**Via GitHub Actions** (Recommended):
+1. Go to **Actions** → **Manual Integration Tests**
+2. Click **"Run workflow"**
+3. Select components and enter versions
+4. Run the test
+
+**Via CLI**:
+
+```bash
+# Auto-detected as "sdk" mode (1 SDK)
+npm run manual -- --sdk-ts v1.0.0
+
+# Auto-detected as "all" mode (3 SDKs)
+npm run manual -- --sdk-ts v1.0.0 --sdk-swift v2.1.0 --sdk-kmp v0.5.0
+```
+
+## End-to-end test matrix
+
+| Flow                                | sdk-ts | sdk-swift | sdk-kmp |
+| ----------------------------------- | ------ | --------- | ------- |
+| Backup and restorations             | ✔︎      | ✔︎         | ❌       |
+| Estabilish connection               | ✔︎      | ✔︎         | ❌       |
+| Receive issued JWT credential       | ✔︎      | ✔︎         | ❌       |
+| Receive issued SD-JWT credential    | ✔︎      | ✔︎         | ❌       |
+| Receive issued AnonCreds credential | ✔︎      | ✔︎         | ❌       |
+| Provide JWT proof                   | ✔︎      | ✔︎         | ❌       |
+| Provide SD-JWT proof                | ✔︎      | ✔︎         | ❌       |
+| Provide AnonCreds proof             | ✔︎      | ✔︎         | ❌       |
+| Receive JWT revocation notification | ✔︎      | ✔︎         | ❌       |
+| Verify JWT proof                    | ✔︎      | ✔︎         | ❌       |
+| Verify SD-JWT proof                 | ✔︎      | ✔︎         | ❌       |
+| Verify AnonCreds proof              | ✔︎      | ✔︎         | ❌       |
+| Receive out-of-band JWT credential  | ✔︎      |           | ❌       |
+| Provide out-of-band JWT proof       | ✔︎      |           | ❌       |
+
+**Note**: The Kotlin SDK (sdk-kmp) is currently broken and non-functional. Tests are skipped with clear warnings. See PLAN.md for details on the improvement roadmap.
+
+## Cloud-Agent API matrix
+
+| Method | Endpoint | Description | Covered |
+| ------ | -------- | ----------- | ------- |
+
 ## Usage
 
 ```bash
 npm ci
 npx tsx cli --component {component} --runner {runner}
 ```
+
+### Environment Setup
+
+Copy the example environment file and configure the required variables:
+
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+```
+
+**Required Environment Variables:**
+- `ENV`: Base64-encoded JSON string with environment configuration
+- `GH_TOKEN`: GitHub token with repository access
+
+**Optional Environment Variables:**
+- `SLACK_WEBHOOK`: Slack webhook URL for notifications
+- `DEBUG`: Set to `true` for detailed command output
+- `CI`: Set to `true` for CI mode (disables spinners)
+
+See `.env.example` for detailed configuration options.
 
 ### Components
 
@@ -46,9 +119,9 @@ The following table describes the artifact versioning and testing for the integr
 
 In order to test all latest components there's a weekly job.
 
-| environment | cloud-agent | mediator | sdk-ts  | sdk-kmp | sdk-swift |
-| ----------- | ----------- | -------- | ------- | ------- | --------- |
-| weekly      | main        | main     | main    | main    | main      |
+| environment | cloud-agent | mediator | sdk-ts | sdk-kmp | sdk-swift |
+| ----------- | ----------- | -------- | ------ | ------- | --------- |
+| weekly      | main        | main     | main   | main    | main      |
 
 ## Breaking change flow
 

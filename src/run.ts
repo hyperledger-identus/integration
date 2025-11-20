@@ -8,6 +8,7 @@ import { cloud } from "./runner/cloud.js"
 export const run = {
     integration: integration.run,
     environment: env.run,
+    manualEnvironment: env.manualRun,
     docker: docker.run,
     report: report.run,
     cloud: cloud.run

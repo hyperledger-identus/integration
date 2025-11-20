@@ -4,9 +4,32 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="static/bulma.css">
-  <link rel="icon" href="static/identus.svg" type="image/svg+xml">
-  <script src="static/main.js"></script>
+  <script>
+    // Set base path before loading other resources (same logic as main.js)
+    window.basePath = window.location.host.includes('localhost') ? "/" : "/integration/";
+    document.write('<link rel="stylesheet" href="' + window.basePath + 'static/bulma.css">');
+    document.write('<link rel="stylesheet" href="' + window.basePath + 'static/custom.css">');
+    document.write('<link rel="icon" href="' + window.basePath + 'static/identus.svg" type="image/svg+xml">');
+    
+    // Load modular JavaScript files in dependency order
+    const scripts = [
+      'static/js/config/app-config.js',
+      'static/js/utils/display-helpers.js',
+      'static/js/utils/dom-utils.js',
+      'static/js/components/breadcrumb-manager.js',
+      'static/js/components/release-card-manager.js',
+      'static/js/components/navbar-controller.js',
+      'static/js/routing/route-matcher.js',
+      'static/js/routing/spa-router.js',
+      'static/js/routing/navigation-handler.js',
+      'static/js/communication/iframe-messenger.js',
+      'static/main.js'
+    ];
+    
+    scripts.forEach(script => {
+      document.write('<script src="' + window.basePath + script + '"><\/script>');
+    });
+  </script>
   <title>Identus Integration</title>
   <style>
     html,
@@ -18,21 +41,7 @@
 
     #content-iframe {
       width: 100%;
-      padding-top: 58px;
-      height: 100%;
-      border: none;
-    }
-
-    html,
-    body {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-    }
-
-    #content-iframe {
-      width: 100%;
-      padding-top: 58px;
+      padding-top: 115px;
       height: 100%;
       border: none;
     }
@@ -88,7 +97,7 @@
   <nav class="navbar is-transparent is-fixed-top" role="navigation" aria-label="main navigation">
     <div class="navbar-brand">
       <a href="/" class="navbar-item">
-        <img src="static/identus.svg" alt="Identus">
+        <script>document.write('<img src="' + window.basePath + 'static/identus.svg" alt="Identus">');</script>
       </a>
 
       <div role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbar">
@@ -101,14 +110,14 @@
 
     <div id="navbar" class="navbar-menu">
       <div class="navbar-start">
-        <a href="/releases" class="navbar-item">Releases</a>
+        <a href="/release" class="navbar-item">Releases</a>
         <a href="/weekly" class="navbar-item">Weekly</a>
+        <a href="/manual" class="navbar-item">Manual</a>
         <div class="navbar-item has-dropdown is-hoverable">
           <a class="navbar-link">Services</a>
           <div class="navbar-dropdown is-boxed">
             <a href="/cloud-agent" class="navbar-item">Cloud Agent</a>
             <a href="/mediator" class="navbar-item">Mediator</a>
-            <a href="/prism-node" class="navbar-item">Prism Node</a>
           </div>
         </div>
 
@@ -123,6 +132,7 @@
       </div>
     </div>
   </nav>
+  <div id="breadcrumbs" class="is-hidden"></div>
   <iframe id="content-iframe" src=""></iframe>
 </body>
 
