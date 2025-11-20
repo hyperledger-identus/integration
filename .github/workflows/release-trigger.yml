@@ -1,25 +1,119 @@
-name: Trigger Release Integration
+name: Release Integration
 
 on:
-  repository_dispatch:
-    types: [platform-release]
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: 'Release version (e.g., 1.0.0)'
+        required: true
+        type: string
+
+concurrency:
+  group: 'integration-lock'
+  cancel-in-progress: false
 
 jobs:
-  trigger-release:
+  main:
+    name: "Trigger 'release' integration"
     runs-on: ubuntu-latest
+
+    outputs:
+      env: ${{ steps.components.outputs.env }} # base64 encoded
+      sdk-ts: ${{ steps.components.outputs.sdk-ts }}
+      sdk-kmp: ${{ steps.components.outputs.sdk-kmp }}
+      sdk-swift: ${{ steps.components.outputs.sdk-swift }}
+
     steps:
-      - name: Extract release version
-        id: extract
-        run: |
-          VERSION="${{ github.event.client_payload.tag }}"
-          echo "release-version=${VERSION#v}" >> $GITHUB_OUTPUT
-      
-      - name: Trigger release integration
-        uses: ./.github/workflows/integration.yml
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          component: release
-          release-version: ${{ steps.extract.outputs.release-version }}
-          env: ${{ toJSON(env) }}
-          sdk-ts: true
-          sdk-kmp: true
-          sdk-swift: true
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Define release environment
+        id: components
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMPONENT: release
+          VERSION: ${{ github.event.inputs.release_version }}
+          RUN_ID: ${{ github.run_id }}
+          RELEASE_VERSION: ${{ github.event.inputs.release_version }}
+        run: |
+          npm install
+          npm run environment
+          ENV="$(cat env)"
+          echo "env=$ENV" >> "$GITHUB_OUTPUT"
+          echo "sdk-ts=$(echo $ENV | base64 --decode | jq -r '.runners.["sdk-ts"].enabled')" >> "$GITHUB_OUTPUT"
+          echo "sdk-kmp=$(echo $ENV | base64 --decode | jq -r '.runners.["sdk-kmp"].enabled')" >> "$GITHUB_OUTPUT"
+          echo "sdk-swift=$(echo $ENV | base64 --decode | jq -r '.runners.["sdk-swift"].enabled')" >> "$GITHUB_OUTPUT"
+          echo $ENV | base64 --decode
+
+  cloud-setup:
+    needs: main
+    name: Cloud setup
+    runs-on: ubuntu-latest
+    env:
+      ENV: ${{ needs.main.outputs.env }}
+      CLOUD_SERVICE_TOKEN: ${{ secrets.CLOUD_SERVICE_TOKEN }}
+      CLOUD_SERVICE_URL: ${{ secrets.CLOUD_SERVICE_URL }}
+      CLOUD_SERVICE_PROJECT: ${{ secrets.CLOUD_SERVICE_PROJECT }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup environment
+        run: |
+          npm install
+          npm run cloud:check
+          npm run cloud:setup
+
+  sdk-ts:
+    needs: [main, cloud-setup]
+    if: needs.main.outputs.sdk-ts  == 'true'
+    secrets: inherit
+    uses: ./.github/workflows/sdk-ts.yml
+    with:
+      ENV: ${{ needs.main.outputs.env }}
+
+  sdk-kmp:
+    needs: [main, cloud-setup]
+    if: false # needs.main.outputs.sdk-kmp  == 'true'
+    secrets: inherit
+    uses: ./.github/workflows/sdk-kmp.yml
+    with:
+      ENV: ${{ needs.main.outputs.env }}
+
+  sdk-swift:
+    needs: [main, cloud-setup]
+    if: needs.main.outputs.sdk-swift  == 'true'
+    secrets: inherit
+    uses: ./.github/workflows/sdk-swift.yml
+    with:
+      ENV: ${{ needs.main.outputs.env }}
+
+  generate-reports:
+    needs: [main, sdk-ts, sdk-kmp, sdk-swift]
+    if: always()
+    secrets: inherit
+    uses: ./.github/workflows/report.yml
+    permissions:
+      pages: write
+      id-token: write
+      contents: write
+      actions: read
+    with:
+      env: ${{ needs.main.outputs.env }}
+      run-id: ${{ github.run_id }}
+      component: release
+      release-version: ${{ github.event.inputs.release_version }}
+      sdk-ts: ${{ needs.sdk-ts.result != 'skipped' }}
+      sdk-kmp: ${{ needs.sdk-kmp.result != 'skipped' }}
+      sdk-swift: ${{ needs.sdk-swift.result != 'skipped' }}

@@ -1,14 +1,18 @@
 import { environment } from "../types.js"
+import { validateCloudEnvironment } from "../config/validation.js"
 
 async function run(trigger: 'check' | 'setup') {
+    // Validate cloud environment variables
+    const validatedEnv = validateCloudEnvironment()
+    
     const env: environment = JSON.parse(atob(process.env.ENV!))
     const cloudAgentVersion = env.services.agent.version
     const mediatorVersion = env.services.mediator.version
     const prismNodeVersion = env.services.node.version
 
-    const cloudApiBaseUrl = process.env.CLOUD_SERVICE_URL!
-    const cloudProjectName = process.env.CLOUD_SERVICE_PROJECT!
-    const cloudServiceToken = process.env.CLOUD_SERVICE_TOKEN!
+    const cloudApiBaseUrl = validatedEnv.CLOUD_SERVICE_URL!
+    const cloudProjectName = validatedEnv.CLOUD_SERVICE_PROJECT!
+    const cloudServiceToken = validatedEnv.CLOUD_SERVICE_TOKEN!
 
     const headers = {
         Authorization: `Bearer ${cloudServiceToken}`,

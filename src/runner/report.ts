@@ -3,6 +3,7 @@ import { cmd } from "../cmd.js";
 import { environment, runner, runners } from "../types.js";
 import { slack } from "../slack.js";
 import { join } from 'path';
+import { validateBaseEnvironment, validateReleaseEnvironment } from "../config/validation.js";
 
 // Base URL for external notifications (Slack, etc.)
 const externalBaseUrl = process.env.EXTERNAL_BASE_URL || "https://hyperledger-identus.github.io/integration/"
@@ -36,16 +37,16 @@ function getEnabledRunners(env: environment) {
 
 function generateEnvironmentFile(resultsDir: string, env: environment) {
     const envFilePath = `${resultsDir}/environment.properties`
-    const environment = []
-    environment.push(`agent: ${env.services.agent.version}`)
-    environment.push(`mediator: ${env.services.mediator.version}`)
-    environment.push(`prism-node: ${env.services.node.version}`)
+    const environmentProps: string[] = []
+    environmentProps.push(`agent: ${env.services.agent.version}`)
+    environmentProps.push(`mediator: ${env.services.mediator.version}`)
+    environmentProps.push(`prism-node: ${env.services.node.version}`)
 
     getEnabledRunners(env).forEach(runner => {
-        environment.push(`${runner}: ${env.runners[runner].version}`)
+        environmentProps.push(`${runner}: ${env.runners[runner].version}`)
     })
 
-    writeFileSync(envFilePath, environment.join("\n"))
+    writeFileSync(envFilePath, environmentProps.join("\n"))
 }
 
 function generateExecutorFile(resultsDir: string, env: environment, newReportUrl: string) {
@@ -433,7 +434,14 @@ async function handleReleaseReport(env: environment) {
 }
 
 async function run() {
+    // Validate environment variables
     const env: environment = JSON.parse(atob(process.env.ENV!))
+    
+    if (env.component === 'release') {
+        validateReleaseEnvironment()
+    } else {
+        validateBaseEnvironment()
+    }
 
     const hasPages = existsSync('./public')
     if (!hasPages) {

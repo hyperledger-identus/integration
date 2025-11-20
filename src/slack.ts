@@ -1,5 +1,5 @@
 import { environment } from "./types.js"
-import { validateEnvironment } from "./config/validation.js"
+import { validateBaseEnvironment } from "./config/validation.js"
 import { sanitizeUrl } from "./config/sanitization.js"
 
 const messageTemplate = `:x: Integration of \`%COMPONENT%\` failed: <%REPORT%|Report> | <%WORKFLOW%|Workflow execution>`
@@ -12,7 +12,7 @@ const messageTemplate = `:x: Integration of \`%COMPONENT%\` failed: <%REPORT%|Re
  */
 async function sendSlackMessage(reportUrl: string, env: environment) {
   // Validate environment variables
-  const validatedEnv = validateEnvironment()
+  const validatedEnv = validateBaseEnvironment()
   
   if (!validatedEnv.SLACK_WEBHOOK) {
     console.warn('Slack webhook not set. Skipping Slack notification.')
