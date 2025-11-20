@@ -15,11 +15,8 @@ jobs:
           echo "release-version=${VERSION#v}" >> $GITHUB_OUTPUT
       
       - name: Trigger release integration
-        uses: ./.github/workflows/integration.yml
+        uses: peter-evans/repository-dispatch@v3
         with:
-          component: release
-          release-version: ${{ steps.extract.outputs.release-version }}
-          env: ${{ toJSON(env) }}
-          sdk-ts: true
-          sdk-kmp: true
-          sdk-swift: true
+          repository: hyperledger-identus/integration
+          event-type: integration
+          client-payload: '{"component": "release", "version": "${{ steps.extract.outputs.release-version }}"}'
