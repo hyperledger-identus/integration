@@ -1,6 +1,6 @@
 import { Octokit } from 'octokit'
 import { components, environment, repo, component as ComponentType } from '../types.js'
-import { validateEnvironment } from '../config/validation.js'
+import { validateBaseEnvironment } from '../config/validation.js'
 import { sanitizeVersion, sanitizeComponent } from '../config/sanitization.js'
 
 /**
@@ -9,7 +9,7 @@ import { sanitizeVersion, sanitizeComponent } from '../config/sanitization.js'
  */
 async function run(): Promise<string> {
     // Validate environment variables
-    const validatedEnv = validateEnvironment()
+    const validatedEnv = validateBaseEnvironment()
 
     // Sanitize VERSION if provided
     if (process.env.VERSION) {
@@ -165,7 +165,7 @@ function manualRun() {
         }
     }
 
-    validateEnvironment()
+    validateBaseEnvironment()
 
     const environment: environment = {
         component: 'manual',
