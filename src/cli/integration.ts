@@ -1,12 +1,12 @@
 import yargs from 'yargs'
 import { runners } from '../types.js'
 import { run } from '../run.js'
-import { validateCliEnvironment } from '../config/validation.js'
+import { validateIntegrationEnvironment } from '../config/validation.js'
 import { sanitizeRunner } from '../config/sanitization.js'
 
 // Validate environment before proceeding
 try {
-    validateCliEnvironment()
+    validateIntegrationEnvironment()
 } catch (error) {
     console.error('Environment validation failed:', error)
     process.exit(1)
