@@ -55,66 +55,6 @@ npm run manual -- --sdk-ts v1.0.0 --sdk-swift v2.1.0 --sdk-kmp v0.5.0
 | Method | Endpoint | Description | Covered |
 | ------ | -------- | ----------- | ------- |
 
-## Testing Strategy
-
-This project implements a comprehensive testing strategy using mock services to enable reliable testing without external dependencies.
-
-### Test Architecture
-
-- **MockTestRunner**: Generates realistic Allure test results without executing actual SDKs
-- **MockSlackServer**: HTTP server for testing Slack webhook notifications
-- **MockGitHubAPI**: Simulates GitHub API responses for releases and commits
-- **MockCloudService**: Mocks cloud service endpoints for environment management
-
-### Test Coverage
-
-**Overall Coverage**: 79.44% with 82 tests passing
-
-#### Test Suites
-1. **Unit Tests** (`tests/unit/`)
-   - `MockTestRunner.test.ts` - Core test runner functionality (98% coverage)
-   - `slack.test.ts` - Slack notification testing (11 tests)
-   - `environment.test.ts` - Environment configuration logic (16 tests)
-   - `cloud.test.ts` - Cloud service integration (20 tests)
-   - `report-core.test.ts` - Report generation and Allure processing (16 tests)
-
-2. **Integration Tests** (`tests/integration/`)
-   - `workflow.test.ts` - End-to-end workflow testing (11 tests)
-
-#### Test Scenarios
-
-**MockTestRunner Scenarios**:
-- `all-passing` - All tests pass successfully
-- `some-failures` - Mixed success/failure results
-- `all-failures` - All tests fail
-- `some-broken` - Tests with broken errors
-- `compilation-failure` - Build compilation failures
-- `timeout-failure` - Test timeout scenarios
-- `infrastructure-failure` - Infrastructure issues
-- `network-failure` - Network connectivity problems
-- `configuration-error` - Configuration issues
-- `resource-exhaustion` - Resource limit scenarios
-- `data-corruption` - Data integrity issues
-- `security-breach` - Security incident simulation
-
-### Running Tests
-
-```bash
-# Run all tests
-npm test
-
-# Run tests with coverage
-npm run test:coverage
-
-# Run specific test suite
-npm test -- tests/unit/mockrunner/MockTestRunner.test.ts
-npm test -- tests/integration/workflow.test.ts
-
-# Run MockTestRunner scenarios directly
-npx tsx test/mockrunner/run-mock-tests.ts --scenario all-passing
-npx tsx test/mockrunner/run-mock-tests.ts --list-scenarios
-```
-
 ## Usage
 
 ```bash
