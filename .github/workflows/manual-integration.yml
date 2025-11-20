@@ -15,13 +15,7 @@ on:
         required: false
         default: ''
         type: string
-      
-      prism_node_version:
-        description: 'Prism node version (e.g., 2.5.0)'
-        required: false
-        default: 'v2.6.0'
-        type: string
-      
+
       sdk_ts_version:
         description: 'TypeScript SDK version (e.g., 7.0.0)'
         required: false
