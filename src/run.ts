@@ -11,5 +11,6 @@ export const run = {
     manualEnvironment: env.manualRun,
     docker: docker.run,
     report: report.run,
+    regenerate: report.regenerate,
     cloud: cloud.run
 }

@@ -26,10 +26,16 @@ jobs:
         with:
           github-token: ${{ secrets.IDENTUS_CI }}
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Update static files
-        run: |
-          # Remove old static files and copy new ones
-          cp -r initial-pages/ public/
+        run: npm run report:regenerate
 
       - name: Update github pages
         uses: ./.github/actions/update-pages
