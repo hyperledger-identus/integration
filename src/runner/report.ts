@@ -12,21 +12,15 @@ const htmlTemplate = `<!DOCTYPE html>
 <html lang="en">
 <body>
     <script>
-        const targetUrl = "__PAGE__/?c=" + Date.now();
-        
-        // Update parent URL if we're in an iframe
         if (window.parent && window.parent !== window) {
-            window.parent.history.replaceState({page: '/__COMPONENT__/__PAGE__'}, '', '/__COMPONENT__/__PAGE__');
-            
-            // Send navigation message to update breadcrumbs and content
+            const targetUrl = parent.basePath + "__COMPONENT__/__PAGE__";
             parent.postMessage({
                 type: 'iframeNavigation',
-                path: '/__COMPONENT__/__PAGE__'
+                path: targetUrl
             }, '*');
+        } else {
+            window.location.replace("2/?c=" + Date.now());
         }
-        
-        // Navigate to the actual report
-        window.location.href = targetUrl;
     </script>
 </body>
 </html>`
@@ -509,7 +503,7 @@ async function regenerate() {
         const componentReportDir: string = `public/reports/${component}`
         
         if (existsSync(componentReportDir)) {
-            const nextReportId = await cleanupOldReportsAndGetNextId(componentReportDir)
+            const nextReportId = await cleanupOldReportsAndGetNextId(componentReportDir) - 1
             generateRedirectPage(component, nextReportId)
             console.log(`Generated index.html for ${component} pointing to report ${nextReportId}`)
         } else {
@@ -533,6 +527,7 @@ async function regenerate() {
         // Update releases.json with available release versions
         const releaseDirs = getSubfolders(releaseReportDir)
             .filter(dir => !isNaN(parseInt(dir[0]))) // Filter out version directories
+            .filter(dir => dir != "0")
             .sort((a, b) => b.localeCompare(a)); // Sort descending to get latest first
         
         const releases = releaseDirs.map(version => ({

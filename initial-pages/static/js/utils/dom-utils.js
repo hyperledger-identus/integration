@@ -1,6 +1,4 @@
-// DOM manipulation utilities
 window.DomUtils = {
-  // Wait for an element to appear in the DOM
   waitForElement(selector, timeout = 5000) {
     return new Promise((resolve, reject) => {
       const element = document.querySelector(selector);
@@ -40,7 +38,6 @@ window.DomUtils = {
     };
   },
 
-  // Create element with attributes and children
   createElement(tag, attributes = {}, children = []) {
     const element = document.createElement(tag);
     
@@ -67,7 +64,6 @@ window.DomUtils = {
     return element;
   },
 
-  // Toggle multiple classes on an element
   toggleClasses(element, classMap) {
     if (!element) return;
     
