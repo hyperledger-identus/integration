@@ -1,0 +1,39 @@
+name: Update Static Files
+
+on:
+  workflow_dispatch:
+
+jobs:
+  update-static:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download github pages
+        uses: ./.github/actions/get-pages
+        with:
+          github-token: ${{ secrets.IDENTUS_CI }}
+
+      - name: Update static files
+        run: |
+          # Remove old static files and copy new ones
+          rm -rf public/static/*
+          cp -r initial-pages/static/* public/static/
+
+      - name: Update github pages
+        uses: ./.github/actions/update-pages
+        with:
+          component: "static"
+          gpg-private-key: ${{ secrets.HYP_BOT_GPG_PRIVATE }}
+          gpg-passphrase: ${{ secrets.HYP_BOT_GPG_PASSWORD }}
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
