@@ -21,6 +21,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.IDENTUS_CI }}
+          fetch-depth: 0
 
       - name: Download github pages
         uses: ./.github/actions/get-pages
