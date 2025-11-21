@@ -26,7 +26,11 @@ jobs:
         run: |
           # Remove old static files and copy new ones
           rm -rf public/static/*
+          rm public/index.html
+          rm public/404.html
           cp -r initial-pages/static/* public/static/
+          cp initial-pages/index.html public/index.html
+          cp initial-pages/404.html public/404.html
 
       - name: Update github pages
         uses: ./.github/actions/update-pages
