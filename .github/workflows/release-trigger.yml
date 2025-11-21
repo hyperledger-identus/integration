@@ -36,7 +36,7 @@ jobs:
       - name: Define release environment
         id: components
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.IDENTUS_CI }}
           COMPONENT: release
           VERSION: ${{ github.event.inputs.release_version }}
           RUN_ID: ${{ github.run_id }}

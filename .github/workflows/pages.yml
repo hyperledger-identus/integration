@@ -25,7 +25,7 @@ jobs:
       - name: Download github pages
         uses: ./.github/actions/get-pages
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.IDENTUS_CI }}
 
       - name: Update github pages
         uses: ./.github/actions/update-pages

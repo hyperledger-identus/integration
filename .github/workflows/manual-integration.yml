@@ -62,7 +62,7 @@ jobs:
       - name: Define runners
         id: components
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.IDENTUS_CI }}
           COMPONENT: ${{ github.event.client_payload.component }}
           VERSION: ${{ github.event.client_payload.version }}
           RUN_ID: ${{ github.run_id }}
