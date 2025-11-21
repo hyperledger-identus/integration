@@ -31,6 +31,7 @@
     "cloud:check": "npx tsx src/cli/cloud.ts check",
     "integration": "npx tsx src/cli/integration",
     "report": "npx tsx src/cli/report",
+    "report:regenerate": "npx tsx src/cli/regenerate",
     "manual": "npx tsx src/cli/manual.ts"
   }
 }

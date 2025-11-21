@@ -493,6 +493,61 @@ async function run() {
     }
 }
 
+async function regenerate() {
+    const hasPages = existsSync('./public')
+    if (!hasPages) {
+        await cmd(`cp -r ./initial-pages/. ./public`)
+    }
+
+    // Update static files
+    await cmd(`cp -r ./initial-pages/static/. ./public/static/`)
+
+    // Components that need index.html generation
+    const components = ['sdk-ts', 'sdk-swift', 'sdk-kmp', 'cloud-agent', 'mediator', 'manual', 'weekly']
+    
+    for (const component of components) {
+        const componentReportDir: string = `public/reports/${component}`
+        
+        if (existsSync(componentReportDir)) {
+            const nextReportId = await cleanupOldReportsAndGetNextId(componentReportDir)
+            generateRedirectPage(component, nextReportId)
+            console.log(`Generated index.html for ${component} pointing to report ${nextReportId}`)
+        } else {
+            console.log(`No reports found for ${component}, skipping index.html generation`)
+        }
+    }
+
+    // Handle release component separately (it uses cards.html)
+    const releaseReportDir: string = `public/reports/release`
+    if (existsSync(releaseReportDir)) {
+        const releaseHtmlTemplate = `<!DOCTYPE html>
+<html lang="en">
+<body>
+    <script>
+        window.location.href = "cards.html?c=" + Date.now()
+    </script>
+</body>
+</html>`
+        writeFileSync(`./public/reports/release/index.html`, releaseHtmlTemplate)
+        
+        // Update releases.json with available release versions
+        const releaseDirs = getSubfolders(releaseReportDir)
+            .filter(dir => !isNaN(parseInt(dir[0]))) // Filter out version directories
+            .sort((a, b) => b.localeCompare(a)); // Sort descending to get latest first
+        
+        const releases = releaseDirs.map(version => ({
+            version: version,
+            path: `./${version}/index.html`,
+            lastUpdated: new Date().toISOString().split('T')[0]
+        }));
+        
+        writeFileSync(`${releaseReportDir}/releases.json`, JSON.stringify(releases, null, 2))
+        console.log(`Generated index.html for release pointing to cards.html`)
+        console.log(`Updated releases.json with ${releases.length} release versions`)
+    }
+}
+
 export const report = {
-    run
+    run,
+    regenerate
 }
