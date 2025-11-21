@@ -26,7 +26,7 @@ jobs:
     env:
       COMPONENT: ${{ inputs.component }}
       ENV: ${{ inputs.ENV }}
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_TOKEN: ${{ secrets.IDENTUS_CI }}
       SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
       RELEASE_VERSION: ${{ inputs.release-version }}
 
@@ -42,7 +42,7 @@ jobs:
           name: sdk-ts
           path: tmp/sdk-ts
           run-id: ${{ inputs.run-id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.IDENTUS_CI }}
 
       - name: Download sdk-kmp report
         if: inputs.sdk-kmp
@@ -52,7 +52,7 @@ jobs:
           name: sdk-kmp
           path: tmp/sdk-kmp
           run-id: ${{ inputs.run-id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.IDENTUS_CI }}
           
       - name: Download sdk-swift
         if: inputs.sdk-swift
@@ -62,7 +62,7 @@ jobs:
           name: sdk-swift
           path: tmp/sdk-swift
           run-id: ${{ inputs.run-id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.IDENTUS_CI }}
 
       - uses: actions/setup-node@v4
         with:
@@ -71,7 +71,7 @@ jobs:
       - name: Download github pages
         uses: ./.github/actions/get-pages
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.IDENTUS_CI }}
 
       - name: Aggregate reports
         run: |
