@@ -1,4 +1,3 @@
-// Breadcrumb management functionality
 window.BreadcrumbManager = class BreadcrumbManager {
   constructor() {
     this.breadcrumbsElement = document.getElementById('breadcrumbs');
@@ -11,7 +10,6 @@ window.BreadcrumbManager = class BreadcrumbManager {
   }
 
   setupEventListeners() {
-    // Listen for hash changes
     this.hashchangeCleanup = DomUtils.addEventListenerWithCleanup(window, 'hashchange', () => {
       console.log('hashchange event fired');
       this.updateBreadcrumb(window.location.pathname);
@@ -22,42 +20,35 @@ window.BreadcrumbManager = class BreadcrumbManager {
     console.log('BreadcrumbManager: updateBreadcrumb called with path:', path);
     if (!this.breadcrumbsElement) return;
 
-    const basePath = window.AppConfig.getBasePath();
+    const basePath = window.basePath;
     console.log('BreadcrumbManager: basePath:', basePath);
     const pathParts = path.replace(basePath, '').split('/').filter(part => part);
     console.log('BreadcrumbManager: pathParts after parsing:', pathParts);
 
     if (pathParts.length === 0) {
-      // Home page - hide breadcrumb
       this.breadcrumbsElement.classList.add('is-hidden');
       this.breadcrumbsElement.innerHTML = '';
     } else {
-      // Show breadcrumb with proper hierarchy
       this.breadcrumbsElement.classList.remove('is-hidden');
       
       let breadcrumbHTML = '<nav class="breadcrumb" aria-label="breadcrumbs"><ul>';
-      
-      // Home breadcrumb
       breadcrumbHTML += '<li><a href="/" class="breadcrumb-item">Home</a></li>';
       
-      // Build path incrementally
-      let currentPath = '';
+      let currentPath = basePath;
       pathParts.forEach((part, index) => {
-        currentPath += '/' + part;
+        currentPath += part;
         const isLast = index === pathParts.length - 1;
         
         console.log(`BreadcrumbManager: Processing part ${index}: "${part}" (currentPath: "${currentPath}", isLast: ${isLast})`);
         
         let displayName;
         if (index === 0) {
-          // First level - category or component
           if (['release', 'manual'].includes(part)) {
             displayName = DisplayHelpers.getCategoryDisplayName(part);
           } else {
             displayName = DisplayHelpers.getComponentDisplayName(part);
           }
         } else {
-          // Report ID level
           displayName = part;
         }
         
@@ -80,13 +71,11 @@ window.BreadcrumbManager = class BreadcrumbManager {
   }
 
   addBreadcrumbClickHandlers() {
-    // Add click handlers for SPA navigation
     this.breadcrumbsElement.querySelectorAll('a:not([aria-current="page"])').forEach(link => {
       link.addEventListener('click', (e) => {
         e.preventDefault();
         const href = link.getAttribute('href');
         
-        // Use SPA navigation
         if (window.loadContent) {
           window.history.pushState({ page: href }, '', href);
           window.loadContent(href);
@@ -97,7 +86,6 @@ window.BreadcrumbManager = class BreadcrumbManager {
     });
   }
 
-  // Cleanup method to remove event listeners
   destroy() {
     if (this.popstateCleanup) this.popstateCleanup();
     if (this.hashchangeCleanup) this.hashchangeCleanup();
