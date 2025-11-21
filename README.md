@@ -72,13 +72,11 @@ cp .env.example .env
 ```
 
 **Required Environment Variables:**
-- `ENV`: Base64-encoded JSON string with environment configuration
 - `GH_TOKEN`: GitHub token with repository access
 
 **Optional Environment Variables:**
 - `SLACK_WEBHOOK`: Slack webhook URL for notifications
 - `DEBUG`: Set to `true` for detailed command output
-- `CI`: Set to `true` for CI mode (disables spinners)
 
 See `.env.example` for detailed configuration options.
 
