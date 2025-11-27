@@ -11,7 +11,6 @@ export interface EnvironmentConfig {
   COMPONENT?: string;
   VERSION?: string;
   RUN_ID?: string;
-  RELEASE_VERSION?: string;
   MEDIATOR_OOB_URL?: string;
   AGENT_URL?: string;
   CLOUD_SERVICE_URL?: string;
@@ -80,7 +79,6 @@ export function validateBaseEnvironment(): EnvironmentConfig {
     COMPONENT: process.env.COMPONENT,
     VERSION: process.env.VERSION,
     RUN_ID: process.env.RUN_ID,
-    RELEASE_VERSION: process.env.RELEASE_VERSION,
     MEDIATOR_OOB_URL: process.env.MEDIATOR_OOB_URL,
     AGENT_URL: process.env.AGENT_URL,
     CLOUD_SERVICE_URL: process.env.CLOUD_SERVICE_URL,
@@ -95,14 +93,30 @@ export function validateBaseEnvironment(): EnvironmentConfig {
 export function validateReleaseEnvironment(): EnvironmentConfig {
   const env = validateBaseEnvironment()
   
+  // For release component, VERSION is required
+  // If VERSION is not set, try to extract from ENV object
+  let version = process.env.VERSION
+  
+  // If VERSION is not set, try to extract from decoded ENV object
+  if (!version && process.env.ENV) {
+    try {
+      const decodedEnv = JSON.parse(Buffer.from(process.env.ENV, 'base64').toString()) as { releaseVersion?: string }
+      if (decodedEnv.releaseVersion && typeof decodedEnv.releaseVersion === 'string') {
+        version = decodedEnv.releaseVersion
+      }
+    } catch {
+      // Ignore parsing errors, will be caught by validation below
+    }
+  }
+  
   // Additional validation for release operations
-  if (!process.env.RELEASE_VERSION || process.env.RELEASE_VERSION?.trim() === '') {
-    throw new Error('RELEASE_VERSION is required for release operations')
+  if (!version || version.trim() === '') {
+    throw new Error('VERSION is required for release operations')
   }
 
   return {
     ...env,
-    RELEASE_VERSION: process.env.RELEASE_VERSION!
+    VERSION: version
   }
 }
 
@@ -226,7 +240,6 @@ export function validateCloudOnlyEnvironment(): EnvironmentConfig {
     COMPONENT: process.env.COMPONENT,
     VERSION: process.env.VERSION,
     RUN_ID: process.env.RUN_ID,
-    RELEASE_VERSION: process.env.RELEASE_VERSION,
     MEDIATOR_OOB_URL: process.env.MEDIATOR_OOB_URL,
     AGENT_URL: process.env.AGENT_URL,
     CLOUD_SERVICE_URL: process.env.CLOUD_SERVICE_URL!,
@@ -309,7 +322,6 @@ export function validateIntegrationEnvironment(): EnvironmentConfig {
     COMPONENT: process.env.COMPONENT,
     VERSION: process.env.VERSION,
     RUN_ID: process.env.RUN_ID,
-    RELEASE_VERSION: process.env.RELEASE_VERSION,
     MEDIATOR_OOB_URL: process.env.MEDIATOR_OOB_URL,
     AGENT_URL: process.env.AGENT_URL,
     CLOUD_SERVICE_URL: process.env.CLOUD_SERVICE_URL,

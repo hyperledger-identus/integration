@@ -9,9 +9,6 @@ on:
         type: string
       component:
         type: string
-      release-version:
-        type: string
-        required: false
       sdk-ts:
         type: boolean
       sdk-kmp:
@@ -20,15 +17,16 @@ on:
         type: boolean
 
 jobs:
+  # Main report generation job
   report:
     name: "Generate report for ${{ inputs.component }}"
     runs-on: ubuntu-latest
+    timeout-minutes: 30 # Prevent hanging jobs
     env:
       COMPONENT: ${{ inputs.component }}
-      ENV: ${{ inputs.ENV }}
-      GH_TOKEN: ${{ secrets.IDENTUS_CI }}
-      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-      RELEASE_VERSION: ${{ inputs.release-version }}
+      ENV: ${{ inputs.env }} # Base64-encoded environment config
+      GH_TOKEN: ${{ secrets.IDENTUS_CI }} # GitHub token for API access
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }} # Slack webhook for notifications
 
     steps:
       - name: Checkout
@@ -37,6 +35,8 @@ jobs:
           token: ${{ secrets.IDENTUS_CI }}
           fetch-depth: 0
 
+      # Download Allure test results from SDK runner jobs
+      # continue-on-error: true ensures workflow continues even if artifact download fails
       - name: Download sdk-ts report
         if: inputs.sdk-ts
         continue-on-error: true
@@ -76,6 +76,8 @@ jobs:
         with:
           github-token: ${{ secrets.IDENTUS_CI }}
 
+      # Aggregate test results and generate Allure reports
+      # This step processes Allure results, generates HTML reports, and updates manifests
       - name: Aggregate reports
         run: |
           npm i
@@ -88,10 +90,13 @@ jobs:
           gpg-private-key: ${{ secrets.HYP_BOT_GPG_PRIVATE }}
           gpg-passphrase: ${{ secrets.HYP_BOT_GPG_PASSWORD }}
 
+  # Deploy generated reports to GitHub Pages
+  # Runs after report generation completes successfully
   deploy-pages:
     needs: report
     name: Update report website
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

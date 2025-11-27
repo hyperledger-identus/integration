@@ -17,7 +17,7 @@ export class SwiftSdk extends TestRunner {
         return {
             TEST_RUNNER_MEDIATOR_OOB_URL: mediatorUrl!,
             TEST_RUNNER_PRISM_AGENT_URL: agentUrl!,
-            TEST_RUNNER_DEBUG: true
+            TEST_RUNNER_DEBUG: "true"
         }
     }
 

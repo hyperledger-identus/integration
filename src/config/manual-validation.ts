@@ -29,28 +29,34 @@ export interface CompatibilityResult {
 const VALID_TEST_MODES = ['sdk', 'all', 'custom'] as const
 const VALID_SERVICES = ['cloud-agent', 'mediator', 'prism-node'] as const
 const VALID_SDKS = ['sdk-ts', 'sdk-swift', 'sdk-kmp'] as const
-type ValidTestMode = typeof VALID_TEST_MODES[number]
 type ValidService = typeof VALID_SERVICES[number]
 type ValidSDK = typeof VALID_SDKS[number]
 
-export function validateManualPayload(payload: any): ManualPayload {
+export function validateManualPayload(payload: unknown): ManualPayload {
+  // Type guard for payload
+  if (typeof payload !== 'object' || payload === null) {
+    throw new Error('Payload must be an object')
+  }
+
+  const payloadObj = payload as Record<string, unknown>
+
   // Validate test mode
-  if (!payload.testMode || !VALID_TEST_MODES.includes(payload.testMode)) {
-    throw new Error(`Invalid test mode: ${payload.testMode}`)
+  if (!payloadObj.testMode || !VALID_TEST_MODES.includes(payloadObj.testMode as typeof VALID_TEST_MODES[number])) {
+    throw new Error(`Invalid test mode: ${payloadObj.testMode}`)
   }
 
   // Validate services object
-  if (!payload.services || typeof payload.services !== 'object') {
+  if (!payloadObj.services || typeof payloadObj.services !== 'object' || payloadObj.services === null) {
     throw new Error('Services object is required')
   }
 
   // Validate sdks object
-  if (!payload.sdks || typeof payload.sdks !== 'object') {
+  if (!payloadObj.sdks || typeof payloadObj.sdks !== 'object' || payloadObj.sdks === null) {
     throw new Error('SDKs object is required')
   }
 
-  const serviceEntries = Object.entries(payload.services)
-  const sdkEntries = Object.entries(payload.sdks)
+  const serviceEntries = Object.entries(payloadObj.services as Record<string, unknown>)
+  const sdkEntries = Object.entries(payloadObj.sdks as Record<string, unknown>)
 
   // Validate each service
   for (const [serviceName, config] of serviceEntries) {
@@ -63,7 +69,7 @@ export function validateManualPayload(payload: any): ManualPayload {
   }
 
   // For 'all' mode, ensure all SDKs are enabled
-  if (payload.testMode === 'all') {
+  if (payloadObj.testMode === 'all') {
     const enabledSDKs = sdkEntries.filter(([_, config]) => (config as SDKConfig).enabled)
     if (enabledSDKs.length !== VALID_SDKS.length) {
       throw new Error('All SDKs must be enabled for "all" test mode')
@@ -71,7 +77,7 @@ export function validateManualPayload(payload: any): ManualPayload {
   }
 
   // For 'sdk' mode, ensure exactly one SDK is enabled
-  if (payload.testMode === 'sdk') {
+  if (payloadObj.testMode === 'sdk') {
     const enabledSDKs = sdkEntries.filter(([_, config]) => (config as SDKConfig).enabled)
     if (enabledSDKs.length !== 1) {
       throw new Error('Exactly one SDK must be enabled for "sdk" test mode')
@@ -79,7 +85,7 @@ export function validateManualPayload(payload: any): ManualPayload {
   }
 
   // For 'custom' mode, ensure at least one SDK is enabled
-  if (payload.testMode === 'custom') {
+  if (payloadObj.testMode === 'custom') {
     const enabledSDKs = sdkEntries.filter(([_, config]) => (config as SDKConfig).enabled)
     if (enabledSDKs.length === 0) {
       throw new Error('At least one SDK must be enabled for "custom" test mode')
@@ -89,7 +95,7 @@ export function validateManualPayload(payload: any): ManualPayload {
   return payload as ManualPayload
 }
 
-function validateService(name: string, config: any): void {
+function validateService(name: string, config: unknown): void {
   // Validate service name
   if (!VALID_SERVICES.includes(name as ValidService)) {
     throw new Error(`Invalid service: ${name}`)
@@ -100,27 +106,30 @@ function validateService(name: string, config: any): void {
     throw new Error(`Invalid config for service: ${name}`)
   }
 
+  // Type assertion after validation
+  const serviceConfig = config as ServiceConfig
+
   // Validate enabled field
-  if (typeof config.enabled !== 'boolean') {
+  if (typeof serviceConfig.enabled !== 'boolean') {
     throw new Error(`Enabled field must be boolean for service: ${name}`)
   }
 
   // Validate version field for enabled services
-  if (config.enabled && !config.version) {
+  if (serviceConfig.enabled && !serviceConfig.version) {
     throw new Error(`Version required for enabled service: ${name}`)
   }
 
   // Validate version format
-  if (config.version && typeof config.version !== 'string') {
+  if (serviceConfig.version && typeof serviceConfig.version !== 'string') {
     throw new Error(`Version must be string for service: ${name}`)
   }
 
-  if (config.version && !isValidVersionFormat(config.version)) {
-    throw new Error(`Invalid version format: ${config.version}`)
+  if (serviceConfig.version && !isValidVersionFormat(serviceConfig.version)) {
+    throw new Error(`Invalid version format: ${serviceConfig.version}`)
   }
 }
 
-function validateSDK(name: string, config: any): void {
+function validateSDK(name: string, config: unknown): void {
   // Validate SDK name
   if (!VALID_SDKS.includes(name as ValidSDK)) {
     throw new Error(`Invalid SDK: ${name}`)
@@ -131,23 +140,26 @@ function validateSDK(name: string, config: any): void {
     throw new Error(`Invalid config for SDK: ${name}`)
   }
 
+  // Type assertion after validation
+  const sdkConfig = config as SDKConfig
+
   // Validate enabled field
-  if (typeof config.enabled !== 'boolean') {
+  if (typeof sdkConfig.enabled !== 'boolean') {
     throw new Error(`Enabled field must be boolean for SDK: ${name}`)
   }
 
   // Validate version field for enabled SDKs
-  if (config.enabled && !config.version) {
+  if (sdkConfig.enabled && !sdkConfig.version) {
     throw new Error(`Version required for enabled SDK: ${name}`)
   }
 
   // Validate version format
-  if (config.version && typeof config.version !== 'string') {
+  if (sdkConfig.version && typeof sdkConfig.version !== 'string') {
     throw new Error(`Version must be string for SDK: ${name}`)
   }
 
-  if (config.version && !isValidVersionFormat(config.version)) {
-    throw new Error(`Invalid version format: ${config.version}`)
+  if (sdkConfig.version && typeof sdkConfig.version === 'string' && !isValidVersionFormat(sdkConfig.version)) {
+    throw new Error(`Invalid version format: ${sdkConfig.version}`)
   }
 }
 
@@ -171,8 +183,8 @@ export async function validateServiceVersion(service: string, version: string): 
       return false
     }
 
-    const releases = await response.json()
-    return releases.some((release: any) => release.tag_name === version)
+    const releases = await response.json() as Array<{ tag_name: string }>
+    return releases.some((release) => release.tag_name === version)
   } catch (error) {
     console.warn(`Failed to validate version ${version} for ${service}:`, error)
     return false
@@ -193,8 +205,8 @@ export async function validateSDKVersion(sdk: string, version: string): Promise<
       return false
     }
 
-    const releases = await response.json()
-    return releases.some((release: any) => release.tag_name === version)
+    const releases = await response.json() as Array<{ tag_name: string }>
+    return releases.some((release) => release.tag_name === version)
   } catch (error) {
     console.warn(`Failed to validate version ${version} for ${sdk}:`, error)
     return false

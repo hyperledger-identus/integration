@@ -4,7 +4,6 @@ import { run } from '../run.js'
 import { validateIntegrationEnvironment } from '../config/validation.js'
 import { sanitizeRunner } from '../config/sanitization.js'
 
-// Validate environment before proceeding
 try {
     validateIntegrationEnvironment()
 } catch (error) {
@@ -20,7 +19,6 @@ const cli = yargs(process.argv.slice(2))
 
 const { runner } = await cli.parse()
 
-// Sanitize runner input
 const sanitizedRunner = sanitizeRunner(runner, [...runners] as string[]) as typeof runners[number]
 
 const maybeRunner = runners.find((e) => e == sanitizedRunner)

@@ -1,7 +1,22 @@
+# Integration Workflow
+# 
+# This workflow is triggered by repository_dispatch events from other repositories
+# when components need integration testing. It:
+# 1. Generates environment configuration based on component and version
+# 2. Sets up cloud services (agent, mediator, prism-node)
+# 3. Runs SDK tests in parallel (sdk-ts, sdk-swift, sdk-kmp)
+# 4. Aggregates results and generates Allure reports
+# 5. Deploys reports to GitHub Pages
+# 6. Sends Slack notifications on failure
+#
+# Trigger: repository_dispatch with type 'integration'
+# Payload: { "component": "<component>", "version": "<version>" }
+
 name: Integration
 
 run-name: "Integrate: ${{ github.event.client_payload.component }}"
 
+# Prevent concurrent runs to avoid resource conflicts
 concurrency:
   group: 'integration-lock'
   cancel-in-progress: false
@@ -12,15 +27,17 @@ on:
       - 'integration'
 
 jobs:
+  # Main job: Generate environment configuration
+  # Determines which SDKs to run and creates base64-encoded environment config
   main:
     name: "Trigger '${{ github.event.client_payload.component }}' integration"
     runs-on: ubuntu-latest
 
     outputs:
-      env: ${{ steps.components.outputs.env }} # base64 encoded
-      sdk-ts: ${{ steps.components.outputs.sdk-ts }}
-      sdk-kmp: ${{ steps.components.outputs.sdk-kmp }}
-      sdk-swift: ${{ steps.components.outputs.sdk-swift }}
+      env: ${{ steps.components.outputs.env }} # base64 encoded environment configuration
+      sdk-ts: ${{ steps.components.outputs.sdk-ts }} # Whether sdk-ts should run
+      sdk-kmp: ${{ steps.components.outputs.sdk-kmp }} # Whether sdk-kmp should run
+      sdk-swift: ${{ steps.components.outputs.sdk-swift }} # Whether sdk-swift should run
 
     steps:
       - name: Checkout
@@ -49,6 +66,8 @@ jobs:
           echo "sdk-swift=$(echo $ENV | base64 --decode | jq -r '.runners.["sdk-swift"].enabled')" >> "$GITHUB_OUTPUT"
           echo $ENV | base64 --decode
 
+  # Cloud setup: Deploy cloud services (agent, mediator, prism-node)
+  # Uses the environment configuration to determine service versions
   cloud-setup:
     needs: main
     name: Cloud setup
@@ -75,6 +94,8 @@ jobs:
           npm run cloud:check
           npm run cloud:setup
 
+  # SDK runners: Execute tests for each enabled SDK
+  # These run in parallel after cloud setup completes
   sdk-ts:
     needs: [main, cloud-setup]
     if: needs.main.outputs.sdk-ts  == 'true'
@@ -83,9 +104,11 @@ jobs:
     with:
       ENV: ${{ needs.main.outputs.env }}
 
+  # Note: sdk-kmp is currently disabled due to SDK being broken
+  # See src/test-runner/kotlin.ts for details
   sdk-kmp:
     needs: [main, cloud-setup]
-    if: false # needs.main.outputs.sdk-kmp  == 'true'
+    if: false # needs.main.outputs.sdk-kmp  == 'true' (disabled)
     secrets: inherit
     uses: ./.github/workflows/sdk-kmp.yml
     with:
@@ -99,9 +122,11 @@ jobs:
     with:
       ENV: ${{ needs.main.outputs.env }}
 
+  # Report generation: Aggregates test results and generates Allure reports
+  # Runs even if some SDK tests fail (if: always()) to ensure reports are generated
   generate-reports:
     needs: [main, sdk-ts, sdk-kmp, sdk-swift]
-    if: always()
+    if: always() # Run even if SDK tests fail
     secrets: inherit
     uses: ./.github/workflows/report.yml
     permissions:

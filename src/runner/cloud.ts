@@ -5,7 +5,7 @@ async function run(trigger: 'check' | 'setup') {
     // Validate cloud environment variables
     const validatedEnv = validateCloudOnlyEnvironment()
     
-    const env: environment = JSON.parse(atob(process.env.ENV!))
+    const env = JSON.parse(atob(process.env.ENV!)) as environment
     const cloudAgentVersion = env.services.agent.version
     const mediatorVersion = env.services.mediator.version
     const prismNodeVersion = env.services.node.version
@@ -24,7 +24,7 @@ async function run(trigger: 'check' | 'setup') {
         headers
     })
 
-    const mappedVersions = JSON.parse(await currentEnv.text()).env
+    const mappedVersions = (JSON.parse(await currentEnv.text()) as { env: Record<string, string> }).env
 
     if (trigger == 'check') {
         console.info('Cloud Agent Version', mappedVersions['CLOUD_AGENT_VERSION'])

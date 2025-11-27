@@ -87,13 +87,13 @@ export function sanitizeVersion(version: string | undefined, allowEmpty = false)
   if (sanitized.length === 0 && allowEmpty) return sanitized
 
   // Allow semver patterns (v1.2.3, 1.2.3, 1.2.3-alpha, etc.)
-  const semverPattern = /^v?\d+\.\d+\.\d+(-[a-zA-Z0-9\-\.]+)?$/
+  const semverPattern = /^v?\d+\.\d+\.\d+(-[a-zA-Z0-9-.]+)?$/
   
   // Allow commit hash patterns (40 character hex)
   const commitHashPattern = /^[a-fA-F0-9]{40}$/
   
   // Allow branch/tag names (alphanumeric, hyphens, underscores, dots)
-  const branchTagPattern = /^[a-zA-Z0-9\-_\.\/]+$/
+  const branchTagPattern = /^[a-zA-Z0-9\-_./]+$/
 
   if (semverPattern.test(sanitized) || 
       commitHashPattern.test(sanitized) || 

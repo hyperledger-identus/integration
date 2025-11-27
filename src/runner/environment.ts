@@ -1,7 +1,10 @@
 import { Octokit } from 'octokit'
-import { components, environment, repo, component as ComponentType } from '../types.js'
+import { components, environment, repo, component } from '../types.js'
 import { validateBaseEnvironment } from '../config/validation.js'
 import { sanitizeVersion, sanitizeComponent } from '../config/sanitization.js'
+
+// Constants
+const PRISM_NODE_VERSION = '2.5.0'
 
 /**
  * Setup class
@@ -26,7 +29,7 @@ async function run(): Promise<string> {
             owner: 'hyperledger-identus',
             repo: repo,
         })
-        const tag = releases.data.filter((r: any) => !r.prerelease)[0].tag_name
+        const tag = releases.data.filter((r: { prerelease: boolean }) => !r.prerelease)[0].tag_name
         return extractSemVer(tag)
     }
 
@@ -45,7 +48,7 @@ async function run(): Promise<string> {
             `https://hub.docker.com/v2/repositories/hyperledgeridentus/${serviceName}/tags`,
             { method: 'GET' }
         )
-        let jsonResponse = await response.json()
+        const jsonResponse = await response.json() as { results: Array<{ name: string }> }
         return jsonResponse.results[0].name
     }
 
@@ -69,7 +72,7 @@ async function run(): Promise<string> {
     }
 
     const componentValue = sanitizeComponent(process.env.COMPONENT, [...components] as string[])
-    const component = componentValue as ComponentType
+    const component = componentValue as component
 
     const environment: environment = {
         component,
@@ -84,7 +87,7 @@ async function run(): Promise<string> {
                 version: ''
             },
             node: {
-                version: ''
+                version: PRISM_NODE_VERSION
             }
         },
         runners: {
@@ -95,31 +98,30 @@ async function run(): Promise<string> {
     }
 
     if (component == 'release') {
+        if (environment)
         environment['releaseVersion'] = process.env.VERSION
-        environment['services']['node']['version'] = '2.5.0'
         environment['services']['agent']['version'] = await getLatestReleaseTag('cloud-agent')
         environment['services']['mediator']['version'] = await getLatestReleaseTag('mediator')
         environment['runners']['sdk-ts'] = initRunner(true, false, await getLatestReleaseTag('sdk-ts'))
-        environment['runners']['sdk-kmp'] = initRunner(true, false, await getLatestReleaseTag('sdk-kmp'))
+        environment['runners']['sdk-kmp'] = initRunner(false, false, await getLatestReleaseTag('sdk-kmp'))
         environment['runners']['sdk-swift'] = initRunner(true, false, await getLatestReleaseTag('sdk-swift'))
         return btoa(JSON.stringify(environment))
     }
 
     if (component == 'weekly') {
-        environment['services']['node']['version'] = '2.5.0'
         environment['services']['agent']['version'] = await getLatestDockerRevision('identus-cloud-agent')
         environment['services']['mediator']['version'] = await getLatestDockerRevision('identus-mediator')
         environment['runners']['sdk-ts'] = initRunner(true, true, await getLatestCommit('sdk-ts'))
-        environment['runners']['sdk-kmp'] = initRunner(true, true, await getLatestCommit('sdk-kmp'))
+        environment['runners']['sdk-kmp'] = initRunner(false, false, await getLatestCommit('sdk-kmp'))
         environment['runners']['sdk-swift'] = initRunner(true, true, await getLatestCommit('sdk-swift'))
         return btoa(JSON.stringify(environment))
     }
 
-    let isService = component == 'cloud-agent' || component == 'mediator' || component == 'prism-node'
+    const isService = component == 'cloud-agent' || component == 'mediator' || component == 'prism-node'
     if (isService) {
         // setup all runners
         environment['runners']['sdk-ts'] = initRunner(true, false, await getLatestReleaseTag('sdk-ts'))
-        environment['runners']['sdk-kmp'] = initRunner(true, false, await getLatestReleaseTag('sdk-kmp'))
+        environment['runners']['sdk-kmp'] = initRunner(false, false, await getLatestReleaseTag('sdk-kmp'))
         environment['runners']['sdk-swift'] = initRunner(true, false, await getLatestReleaseTag('sdk-swift'))
     }
 
@@ -127,30 +129,24 @@ async function run(): Promise<string> {
     if (component == 'cloud-agent') {
         environment['services']['agent']['version'] = process.env.VERSION!
         environment['services']['mediator']['version'] = await getLatestReleaseTag('mediator')
-        environment['services']['node']['version'] = '2.5.0'
     } else if (component == 'mediator') {
         environment['services']['agent']['version'] = await getLatestReleaseTag('cloud-agent')
         environment['services']['mediator']['version'] = process.env.VERSION!
-        environment['services']['node']['version'] = '2.5.0'
     } else if (component == 'prism-node') {
         environment['services']['agent']['version'] = await getLatestReleaseTag('cloud-agent')
         environment['services']['mediator']['version'] = await getLatestReleaseTag('mediator')
-        environment['services']['node']['version'] = '2.5.0'
     } else if (component == 'sdk-ts') {
         environment['runners']['sdk-ts'] = initRunner(true, true, process.env.VERSION!)
         environment['services']['agent']['version'] = await getLatestReleaseTag('cloud-agent')
         environment['services']['mediator']['version'] = await getLatestReleaseTag('mediator')
-        environment['services']['node']['version'] = '2.5.0'
     } else if (component == 'sdk-kmp') {
         environment['runners']['sdk-kmp'] = initRunner(true, true, process.env.VERSION!)
         environment['services']['agent']['version'] = await getLatestReleaseTag('cloud-agent')
         environment['services']['mediator']['version'] = await getLatestReleaseTag('mediator')
-        environment['services']['node']['version'] = '2.5.0'
     } else if (component == 'sdk-swift') {
         environment['runners']['sdk-swift'] = initRunner(true, true, process.env.VERSION!)
         environment['services']['agent']['version'] = await getLatestReleaseTag('cloud-agent')
         environment['services']['mediator']['version'] = await getLatestReleaseTag('mediator')
-        environment['services']['node']['version'] = '2.5.0'
     }
 
     return btoa(JSON.stringify(environment))
@@ -180,7 +176,7 @@ function manualRun() {
                 version: process.env.MEDIATOR_VERSION!
             },
             node: {
-                version: process.env.PRISM_NODE_VERSION!
+                version: PRISM_NODE_VERSION
             }
         },
         runners: {
@@ -208,6 +204,7 @@ function manualRun() {
     const env = btoa(JSON.stringify(environment))
     return env
 }
+
 export const env = {
     run,
     manualRun

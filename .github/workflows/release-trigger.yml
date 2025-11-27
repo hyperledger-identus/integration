@@ -1,10 +1,18 @@
+# Release Integration Workflow
+#
+# Manually triggered workflow for testing release versions
+# Similar to integration.yml but specifically for release components
+# Handles both draft and final releases
+#
+# Usage: Actions → Release Integration → Run workflow → Enter version
+
 name: Release Integration
 
 on:
   workflow_dispatch:
     inputs:
       release_version:
-        description: 'Release version (e.g., 1.0.0)'
+        description: 'Release version (e.g., 1.0.0 or 1.0.0-draft)'
         required: true
         type: string
 
@@ -40,7 +48,6 @@ jobs:
           COMPONENT: release
           VERSION: ${{ github.event.inputs.release_version }}
           RUN_ID: ${{ github.run_id }}
-          RELEASE_VERSION: ${{ github.event.inputs.release_version }}
         run: |
           npm install
           npm run environment
@@ -115,7 +122,6 @@ jobs:
       env: ${{ needs.main.outputs.env }}
       run-id: ${{ github.run_id }}
       component: release
-      release-version: ${{ github.event.inputs.release_version }}
       sdk-ts: ${{ needs.sdk-ts.result != 'skipped' }}
       sdk-kmp: ${{ needs.sdk-kmp.result != 'skipped' }}
       sdk-swift: ${{ needs.sdk-swift.result != 'skipped' }}
