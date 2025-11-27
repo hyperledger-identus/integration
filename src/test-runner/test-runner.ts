@@ -1,4 +1,4 @@
-import { runner } from "../types.js";
+import { runner, SDKEnvironment } from "../types.js";
 import { cmd } from "../cmd.js";
 
 export abstract class TestRunner {
@@ -53,6 +53,6 @@ export abstract class TestRunner {
     }
 
     protected abstract getTagFromVersion(): string
-    protected abstract sdkEnv(): any
+    protected abstract sdkEnv(): SDKEnvironment
     protected abstract prepare(): Promise<void>
 }

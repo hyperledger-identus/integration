@@ -13,7 +13,7 @@ export interface ManualCliOptions {
   queue?: boolean
 }
 
-export function createManualCommand(): any {
+export function createManualCommand(): Command {
   const command = new Command()
   command.name('manual')
     .description('Run manual integration tests with custom service and SDK versions')

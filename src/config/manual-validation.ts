@@ -33,7 +33,7 @@ type ValidTestMode = typeof VALID_TEST_MODES[number]
 type ValidService = typeof VALID_SERVICES[number]
 type ValidSDK = typeof VALID_SDKS[number]
 
-export function validateManualPayload(payload: any): ManualPayload {
+export function validateManualPayload(payload: unknown): ManualPayload {
   // Validate test mode
   if (!payload.testMode || !VALID_TEST_MODES.includes(payload.testMode)) {
     throw new Error(`Invalid test mode: ${payload.testMode}`)
@@ -89,7 +89,7 @@ export function validateManualPayload(payload: any): ManualPayload {
   return payload as ManualPayload
 }
 
-function validateService(name: string, config: any): void {
+function validateService(name: string, config: unknown): void {
   // Validate service name
   if (!VALID_SERVICES.includes(name as ValidService)) {
     throw new Error(`Invalid service: ${name}`)
@@ -120,7 +120,7 @@ function validateService(name: string, config: any): void {
   }
 }
 
-function validateSDK(name: string, config: any): void {
+function validateSDK(name: string, config: unknown): void {
   // Validate SDK name
   if (!VALID_SDKS.includes(name as ValidSDK)) {
     throw new Error(`Invalid SDK: ${name}`)
@@ -172,7 +172,7 @@ export async function validateServiceVersion(service: string, version: string): 
     }
 
     const releases = await response.json()
-    return releases.some((release: any) => release.tag_name === version)
+    return releases.some((release: { tag_name: string }) => release.tag_name === version)
   } catch (error) {
     console.warn(`Failed to validate version ${version} for ${service}:`, error)
     return false
@@ -194,7 +194,7 @@ export async function validateSDKVersion(sdk: string, version: string): Promise<
     }
 
     const releases = await response.json()
-    return releases.some((release: any) => release.tag_name === version)
+    return releases.some((release: { tag_name: string }) => release.tag_name === version)
   } catch (error) {
     console.warn(`Failed to validate version ${version} for ${sdk}:`, error)
     return false

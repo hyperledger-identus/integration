@@ -55,8 +55,13 @@ async function execute(cmd: string, options?: SpawnOptions): Promise<string> {
         runner.on('close', (code) => {
             clearSpinner(spinner)
             if (code !== 0) {
-                const error = new Error(`Command failed with exit code ${code}`) as any
-                reject(error.stderr)
+                const errorMessage = `Command '${sanitizedCmd}' failed with exit code ${code}${stderr ? `: ${stderr}` : ''}`
+                const error = new Error(errorMessage)
+                ;(error as any).stderr = stderr
+                ;(error as any).stdout = stdout
+                ;(error as any).exitCode = code
+                ;(error as any).command = sanitizedCmd
+                reject(error)
             } else {
                 resolve(stdout)
             }

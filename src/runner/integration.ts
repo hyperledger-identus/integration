@@ -68,7 +68,7 @@ async function run(requestedRunner: runner) {
     execSync(`git config --global url."https://github.com/".insteadOf git@github.com:`)
 
     // remove any tmp for the runner
-    cmd(`rm -rf tmp/${sanitizedRunner}`)
+    await cmd(`rm -rf tmp/${sanitizedRunner}`)
 
     // setup runner
     const runner: TestRunner = getRunner(sanitizedRunner, runnerConfig)

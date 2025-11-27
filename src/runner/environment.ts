@@ -3,7 +3,8 @@ import { components, environment, repo, component } from '../types.js'
 import { validateBaseEnvironment } from '../config/validation.js'
 import { sanitizeVersion, sanitizeComponent } from '../config/sanitization.js'
 
-const prismNodeVersion = '2.5.0'
+// Constants
+const PRISM_NODE_VERSION = '2.5.0'
 
 /**
  * Setup class
@@ -28,7 +29,7 @@ async function run(): Promise<string> {
             owner: 'hyperledger-identus',
             repo: repo,
         })
-        const tag = releases.data.filter((r: any) => !r.prerelease)[0].tag_name
+        const tag = releases.data.filter((r: { prerelease: boolean }) => !r.prerelease)[0].tag_name
         return extractSemVer(tag)
     }
 
@@ -86,7 +87,7 @@ async function run(): Promise<string> {
                 version: ''
             },
             node: {
-                version: prismNodeVersion
+                version: PRISM_NODE_VERSION
             }
         },
         runners: {
@@ -175,7 +176,7 @@ function manualRun() {
                 version: process.env.MEDIATOR_VERSION!
             },
             node: {
-                version: prismNodeVersion
+                version: PRISM_NODE_VERSION
             }
         },
         runners: {

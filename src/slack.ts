@@ -2,7 +2,9 @@ import { environment } from "./types.js"
 import { validateBaseEnvironment } from "./config/validation.js"
 import { sanitizeUrl } from "./config/sanitization.js"
 
-const messageTemplate = `:x: Integration of \`%COMPONENT%\` failed: <%REPORT%|Report> | <%WORKFLOW%|Workflow execution>`
+// Constants
+const SLACK_MESSAGE_TEMPLATE = `:x: Integration of \`%COMPONENT%\` failed: <%REPORT%|Report> | <%WORKFLOW%|Workflow execution>`
+const GITHUB_ACTIONS_BASE_URL = 'https://github.com/hyperledger-identus/integration/actions/runs'
 
 /**
  * 
@@ -22,9 +24,9 @@ async function sendSlackMessage(reportUrl: string, env: environment) {
   // Sanitize webhook URL
   const sanitizedWebhook = sanitizeUrl(validatedEnv.SLACK_WEBHOOK)
 
-  const executionUrl = `https://github.com/hyperledger-identus/integration/actions/runs/${env.workflow.runId}`
+  const executionUrl = `${GITHUB_ACTIONS_BASE_URL}/${env.workflow.runId}`
 
-  let payload = messageTemplate
+  let payload = SLACK_MESSAGE_TEMPLATE
     .replace("%COMPONENT%", env.component)
     .replace("%REPORT%", reportUrl)
     .replace("%WORKFLOW%", executionUrl)
