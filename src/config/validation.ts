@@ -100,9 +100,11 @@ export function validateReleaseEnvironment(): EnvironmentConfig {
   // If VERSION is not set, try to extract from decoded ENV object
   if (!version && process.env.ENV) {
     try {
-      const decodedEnv = JSON.parse(Buffer.from(process.env.ENV, 'base64').toString())
-      version = decodedEnv.releaseVersion
-    } catch (error) {
+      const decodedEnv = JSON.parse(Buffer.from(process.env.ENV, 'base64').toString()) as { releaseVersion?: string }
+      if (decodedEnv.releaseVersion && typeof decodedEnv.releaseVersion === 'string') {
+        version = decodedEnv.releaseVersion
+      }
+    } catch {
       // Ignore parsing errors, will be caught by validation below
     }
   }

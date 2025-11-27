@@ -1,7 +1,6 @@
 import { ManualPayload, validateAllServiceVersions, validateAllSDKVersions } from '../config/manual-validation.js'
 import { integration } from './integration.js'
-import { cloud } from './cloud.js'
-import { environment, component, IntegrationResult, ManualRunResults } from '../types.js'
+import { environment, IntegrationResult, ManualRunResults, runner } from '../types.js'
 
 export interface ManualEnvironmentConfig {
   runId: string
@@ -111,8 +110,6 @@ export interface ManualRunOptions {
   timeout?: number
 }
 
-import { ManualRunResults } from '../types.js'
-
 export interface ManualRunResult {
   runId: string
   success: boolean
@@ -149,7 +146,7 @@ export async function runManualIntegration(options: ManualRunOptions): Promise<M
     for (const runnerName of enabledRunners) {
       console.log(`Running integration tests for ${runnerName}...`)
       try {
-        await integration.run(runnerName as any)
+        await integration.run(runnerName as runner)
         integrationResults.push({ runner: runnerName, success: true })
       } catch (error) {
         integrationResults.push({ 

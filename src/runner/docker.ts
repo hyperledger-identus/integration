@@ -2,7 +2,7 @@ import { cmd } from "../cmd.js"
 import { environment } from "../types.js"
 
 async function run(trigger:  "start" | "stop") {
-    const env: environment = JSON.parse(atob(process.env.ENV!))
+    const env = JSON.parse(atob(process.env.ENV!)) as environment
 
     const dockerEnv = {
         ...process.env,

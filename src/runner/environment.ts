@@ -48,7 +48,7 @@ async function run(): Promise<string> {
             `https://hub.docker.com/v2/repositories/hyperledgeridentus/${serviceName}/tags`,
             { method: 'GET' }
         )
-        let jsonResponse = await response.json()
+        const jsonResponse = await response.json() as { results: Array<{ name: string }> }
         return jsonResponse.results[0].name
     }
 
@@ -117,7 +117,7 @@ async function run(): Promise<string> {
         return btoa(JSON.stringify(environment))
     }
 
-    let isService = component == 'cloud-agent' || component == 'mediator' || component == 'prism-node'
+    const isService = component == 'cloud-agent' || component == 'mediator' || component == 'prism-node'
     if (isService) {
         // setup all runners
         environment['runners']['sdk-ts'] = initRunner(true, false, await getLatestReleaseTag('sdk-ts'))

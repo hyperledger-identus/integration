@@ -113,8 +113,6 @@ export interface GitHubRelease {
 
 // SDK environment interface
 export interface SDKEnvironment {
-    AGENT_URL: string
-    MEDIATOR_OOB_URL: string
     [key: string]: string | undefined
 }
 

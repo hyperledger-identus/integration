@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'fs';
 import { cmd } from "../cmd.js";
-import { environment, runner, runners, ReleaseMetadata, ReleaseManifestEntry, TestStats, RunnerError, ParsedVersion } from "../types.js";
+import { environment, runner, runners, ReleaseMetadata, ReleaseManifestEntry, TestStats, ParsedVersion } from "../types.js";
 import { slack } from "../slack.js";
 import { join } from 'path';
 import { validateBaseEnvironment, validateReleaseEnvironment } from "../config/validation.js";
@@ -144,7 +144,7 @@ function getSubfolders(dir: string): string[] {
     }
 }
 
-function postProcessAllure(reportPath: string, env: environment, currentReportId: number) {
+function postProcessAllure(reportPath: string, _env: environment, _currentReportId: number) {
     let appJs = readFileSync(`${reportPath}/app.js`).toString()
     appJs = appJs.replace(
         `return'                    <a class="link" href="'+a(i(null!=e?s(e,"buildUrl"):e,e))`,
@@ -236,8 +236,8 @@ async function updateReleasesManifest(componentReportDir: string, releaseVersion
     if (existsSync(manifestPath)) {
         try {
             const manifestData = readFileSync(manifestPath, 'utf-8');
-            releases = JSON.parse(manifestData);
-        } catch (error) {
+            releases = JSON.parse(manifestData) as ReleaseManifestEntry[];
+        } catch {
             console.warn('Failed to read existing releases manifest, creating new one');
         }
     }
@@ -311,8 +311,8 @@ function preProcessAllure(resultsDir: string, runner: runner): {passed: boolean,
             }
         })
 
-    let allResults = new Map()
-    let stats: TestStats = { passed: 0, failed: 0, broken: 0, skipped: 0, total: 0 }
+    const allResults = new Map()
+    const stats: TestStats = { passed: 0, failed: 0, broken: 0, skipped: 0, total: 0 }
 
     // process
     results.forEach(entry => {
@@ -353,7 +353,7 @@ function preProcessAllure(resultsDir: string, runner: runner): {passed: boolean,
         }
         allResults.set(entry.result.testCaseId, entry.result.status)
     })
-    const failed = Array.from(allResults.values()).find(v => {
+    const failed = Array.from(allResults.values() as Iterable<string>).find((v: string) => {
         return v == 'failed' || v == 'broken' || v == 'unknown'
     })
     return { passed: !failed, stats: stats }
@@ -407,7 +407,7 @@ async function processRunners(env: environment, tmpResultsDir: string): Promise<
     
     // Aggregate results sequentially (no race condition)
     let executionPassed = true
-    let totalStats: TestStats = { passed: 0, failed: 0, broken: 0, skipped: 0, total: 0 }
+    const totalStats: TestStats = { passed: 0, failed: 0, broken: 0, skipped: 0, total: 0 }
     const runnerErrors: Array<{runner: runner, error: Error}> = []
     
     for (const result of runnerResults) {
@@ -522,8 +522,8 @@ async function cleanupDraftRelease(componentReportDir: string, releaseVersion: s
         if (existsSync(manifestPath)) {
             try {
                 const manifestData = readFileSync(manifestPath, 'utf-8');
-                const releases = JSON.parse(manifestData);
-                const filteredReleases = releases.filter((r: ReleaseManifestEntry) => r.version !== draftVersion);
+                const releases = JSON.parse(manifestData) as ReleaseManifestEntry[];
+                const filteredReleases = releases.filter((r) => r.version !== draftVersion);
                 writeFileSync(manifestPath, JSON.stringify(filteredReleases, null, 2));
                 console.log(`Removed ${draftVersion} from releases manifest`);
             } catch (error) {
@@ -594,7 +594,7 @@ async function run(): Promise<void> {
     
     try {
         // Validate environment variables
-        env = JSON.parse(atob(process.env.ENV!))
+        env = JSON.parse(atob(process.env.ENV!)) as environment
         
         if (env.component === 'release') {
             validateReleaseEnvironment()
@@ -630,7 +630,7 @@ async function run(): Promise<void> {
         try {
             // Copy latest history for generation
             await cmd(`cp -r ${componentLastHistory}/. ${tmpResultsDir}/history`)
-        } catch (_) {
+        } catch {
             console.warn("History not found, skipping.")
         }
 
@@ -650,7 +650,7 @@ async function run(): Promise<void> {
         executionPassed = false
         // Try to get env from error context, but if ENV parsing failed, we can't send Slack
             try {
-                env = JSON.parse(atob(process.env.ENV!))
+                env = JSON.parse(atob(process.env.ENV!)) as environment
                 const componentName = env.component
                 const errorMessage = `[REPORT] Exception occurred during report generation for component '${componentName}': ${error instanceof Error ? error.message : String(error)}`
                 console.error(errorMessage, error instanceof Error && error.stack ? `\nStack trace: ${error.stack}` : '')

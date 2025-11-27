@@ -10,14 +10,14 @@ import { rmSync } from "fs"
 import { validateIntegrationEnvironment } from "../config/validation.js"
 import { sanitizeRunner } from "../config/sanitization.js"
 
-const availableRunners = [
+const availableRunners: TestRunner[] = [
     new TypescriptSdk(),
     new KotlinSdk(),
     new SwiftSdk()
 ] as const
 
 function getRunner(requestedRunner: runner, runnerConfig: runnerConfig): TestRunner {
-    let runner = availableRunners.find((runner) => runner.name == requestedRunner)
+    const runner = availableRunners.find((runner) => runner.name == requestedRunner)
     if (!runner) {
         throw new Error('Element not found')
     }
@@ -54,7 +54,7 @@ async function run(requestedRunner: runner) {
     
     let env: environment
     try {
-        env = JSON.parse(atob(process.env.ENV))
+        env = JSON.parse(atob(process.env.ENV)) as environment
     } catch (error) {
         throw new Error(`Failed to parse ENV variable: ${error}`)
     }
