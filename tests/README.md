@@ -98,3 +98,53 @@ The test suite includes comprehensive tests for Slack notifications:
 8. ✅ Multiple runner failure scenarios
 9. ✅ Test statistics validation (failed/broken tests)
 
+## Recent Test Improvements
+
+The test suite has been enhanced with:
+
+- **Error Path Testing**: Comprehensive tests for error scenarios and edge cases
+- **Version Parsing Tests**: Edge case validation for semantic versioning
+- **Race Condition Tests**: Validation of concurrent runner processing
+- **Type Safety**: All test mocks use proper TypeScript interfaces
+- **Test Utilities**: Reusable helpers for mock data generation and file system management
+
+## Test Structure and Patterns
+
+### Mock Data Generation
+
+The test suite uses helper functions to generate mock Allure results:
+
+```typescript
+import { generateMockRunnerResults } from './helpers/mock-allure-results';
+
+const results = generateMockRunnerResults('sdk-ts', {
+  passed: 10,
+  failed: 2,
+  broken: 1,
+  skipped: 1
+});
+```
+
+### File System Utilities
+
+Temporary directories are managed automatically:
+
+```typescript
+import { createTempDir, cleanupTempDir } from './helpers/test-utils';
+
+const tempDir = createTempDir('test-');
+// ... use tempDir for tests
+cleanupTempDir(tempDir); // Cleanup in afterEach
+```
+
+### Adding New Tests
+
+When adding new tests:
+
+1. Use descriptive test names that explain what is being tested
+2. Group related tests in `describe` blocks
+3. Use `beforeEach`/`afterEach` for setup/cleanup
+4. Mock external dependencies using `vi.mock()`
+5. Test both happy paths and error scenarios
+6. Include edge cases and boundary conditions
+

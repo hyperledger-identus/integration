@@ -590,6 +590,7 @@ async function run(): Promise<void> {
     let executionPassed = true
     let exceptionOccurred = false
     let env: environment
+    let nextReportId: number | undefined
     
     try {
         // Validate environment variables
@@ -624,7 +625,7 @@ async function run(): Promise<void> {
         executionPassed = result.passed
 
         // Delete extra reports and get next report ID
-        const nextReportId = await cleanupOldReportsAndGetNextId(componentReportDir)
+        nextReportId = await cleanupOldReportsAndGetNextId(componentReportDir)
         
         try {
             // Copy latest history for generation

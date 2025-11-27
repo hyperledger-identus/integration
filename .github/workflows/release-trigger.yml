@@ -1,10 +1,18 @@
+# Release Integration Workflow
+#
+# Manually triggered workflow for testing release versions
+# Similar to integration.yml but specifically for release components
+# Handles both draft and final releases
+#
+# Usage: Actions → Release Integration → Run workflow → Enter version
+
 name: Release Integration
 
 on:
   workflow_dispatch:
     inputs:
       release_version:
-        description: 'Release version (e.g., 1.0.0)'
+        description: 'Release version (e.g., 1.0.0 or 1.0.0-draft)'
         required: true
         type: string
 
