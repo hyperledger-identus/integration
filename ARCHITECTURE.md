@@ -12,19 +12,19 @@ The integration suite is a TypeScript-based system that orchestrates end-to-end 
 ┌─────────────────┐
 │  GitHub Actions │
 │   (Triggers)    │
-└────────┬─────────┘
+└─────────────────┘
          │
          ▼
 ┌─────────────────┐
-│  Environment     │
+│  Environment    │
 │  Generation     │
-└────────┬─────────┘
+└────────┬────────┘
          │
          ▼
 ┌─────────────────┐
 │  Cloud Setup    │
 │  (Services)     │
-└────────┬─────────┘
+└────────┬────────┘
          │
          ▼
 ┌─────────────────┐      ┌──────────────┐      ┌──────────────┐
@@ -36,13 +36,13 @@ The integration suite is a TypeScript-based system that orchestrates end-to-end 
 ┌─────────────────┐
 │  Report         │
 │  Generation     │
-└────────┬─────────┘
+└────────┬────────┘
          │
          ▼
-┌─────────────────┐      ┌──────────────┐
-│  GitHub Pages   │      │  Slack       │
-│  Deployment     │      │  Notification│
-└─────────────────┘      └──────────────┘
+┌─────────────────┐      ┌───────────────┐
+│  GitHub Pages   │      │  Slack        │
+│  Deployment     │      │  Notification │
+└─────────────────┘      └───────────────┘
 ```
 
 ## Component Architecture
