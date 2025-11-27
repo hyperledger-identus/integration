@@ -15,7 +15,7 @@ async function sendSlackMessage(reportUrl: string, env: environment) {
   const validatedEnv = validateBaseEnvironment()
   
   if (!validatedEnv.SLACK_WEBHOOK) {
-    console.warn('Slack webhook not set. Skipping Slack notification.')
+    console.warn('[SLACK] Webhook not set. Skipping Slack notification.')
     return
   }
 
@@ -29,15 +29,28 @@ async function sendSlackMessage(reportUrl: string, env: environment) {
     .replace("%REPORT%", reportUrl)
     .replace("%WORKFLOW%", executionUrl)
 
+  console.log(`[SLACK] Attempting to send notification for component ${env.component} to webhook`)
+  
   try {
-    await fetch(sanitizedWebhook, {
+    const response = await fetch(sanitizedWebhook, {
       method: "POST",
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({
         text: payload
       })
     })
+    
+    if (!response.ok) {
+      throw new Error(`Slack webhook returned status ${response.status}: ${response.statusText}`)
+    }
+    
+    console.log(`[SLACK] Successfully sent notification for component ${env.component}`)
   } catch (error) {
-    console.error('Failed to send Slack message:', error)
+    console.error(`[SLACK] Failed to send notification for component ${env.component}:`, error)
+    // Re-throw to ensure the error is logged and handled upstream
+    throw error
   }
 }
 

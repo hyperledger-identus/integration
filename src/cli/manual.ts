@@ -9,8 +9,6 @@ export interface ManualCliOptions {
   sdkTs?: string
   sdkSwift?: string
   sdkKmp?: string
-  awsRegion?: string
-  awsInstanceType?: string
   timeout?: number
   queue?: boolean
 }
@@ -23,12 +21,9 @@ export function createManualCommand(): any {
   command
     .option('--cloud-agent <version>', 'Cloud agent version (e.g., v1.2.3)')
     .option('--mediator <version>', 'Mediator version (e.g., v2.0.0)')
-    .option('--prism-node <version>', 'Prism node version (e.g., v2.5.0)')
     .option('--sdk-ts <version>', 'TypeScript SDK version (e.g., v1.0.0)')
     .option('--sdk-swift <version>', 'Swift SDK version (e.g., v2.1.0)')
     .option('--sdk-kmp <version>', 'Kotlin Multiplatform SDK version (e.g., v0.5.0)')
-    .option('--aws-region <region>', 'AWS region', 'us-east-1')
-    .option('--aws-instance-type <type>', 'AWS instance type', 't3.medium')
     .option('--timeout <minutes>', 'Timeout in minutes', '60')
     .option('--queue', 'Queue run instead of executing immediately', false)
     .action(async (options: ManualCliOptions) => {
@@ -64,8 +59,6 @@ async function handleManualCommand(options: ManualCliOptions): Promise<void> {
   // Prepare run options
   const runOptions: ManualRunOptions = {
     payload,
-    awsRegion: options.awsRegion,
-    awsInstanceType: options.awsInstanceType,
     timeout: (options.timeout || 60) * 60 // Convert to seconds
   }
 
@@ -144,8 +137,6 @@ function buildPayloadFromOptions(options: ManualCliOptions): ManualPayload {
 export function displayConfiguration(payload: ManualPayload, options: ManualCliOptions): void {
   console.log('\n📋 Configuration:')
   console.log(`   Test Mode: ${payload.testMode} (auto-detected from ${Object.keys(payload.sdks).length} SDK${Object.keys(payload.sdks).length !== 1 ? 's' : ''})`)
-  console.log(`   AWS Region: ${options.awsRegion}`)
-  console.log(`   AWS Instance Type: ${options.awsInstanceType}`)
   console.log(`   Timeout: ${options.timeout} minutes`)
   
   const enabledServices = Object.entries(payload.services)

@@ -312,8 +312,11 @@ function preProcessAllure(resultsDir: string, runner: runner): {passed: boolean,
 async function processRunners(env: environment, tmpResultsDir: string): Promise<{passed: boolean, stats: TestStats}> {
     let executionPassed = true;
     let totalStats: TestStats = { passed: 0, failed: 0, broken: 0, skipped: 0, total: 0 }
+    const enabledRunners = getEnabledRunners(env)
+    const runnerErrors: Array<{runner: runner, error: any}> = []
     
-    getEnabledRunners(env).forEach(async (runner) => {
+    // Process all runners and collect errors
+    await Promise.all(enabledRunners.map(async (runner) => {
         const partialResultDir: string = `tmp/${runner}`
         try {
             const {passed: runnerPassed, stats: runnerStats} = preProcessAllure(partialResultDir, runner)
@@ -327,11 +330,27 @@ async function processRunners(env: environment, tmpResultsDir: string): Promise<
             totalStats.total += runnerStats.total
             
             await cmd(`cp -r ${partialResultDir}/. ${tmpResultsDir}`)
+            
+            if (!runnerPassed) {
+                console.warn(`[PROCESS RUNNERS] Runner ${runner} failed: ${runnerStats.failed} failed, ${runnerStats.broken} broken tests`)
+            }
         } catch (e) {
             executionPassed = false
-            console.error(`Could not find '${partialResultDir}' allure results`, e)
+            runnerErrors.push({ runner, error: e })
+            console.error(`[PROCESS RUNNERS] Exception processing runner ${runner} at '${partialResultDir}':`, e)
         }
-    })
+    }))
+    
+    // Log summary
+    if (runnerErrors.length > 0) {
+        console.error(`[PROCESS RUNNERS] ${runnerErrors.length} runner(s) encountered errors:`, runnerErrors.map(e => e.runner).join(', '))
+    }
+    
+    if (!executionPassed) {
+        console.error(`[PROCESS RUNNERS] Execution failed. Stats: ${totalStats.passed} passed, ${totalStats.failed} failed, ${totalStats.broken} broken, ${totalStats.skipped} skipped, ${totalStats.total} total`)
+    } else {
+        console.log(`[PROCESS RUNNERS] All runners passed. Stats: ${totalStats.passed} passed, ${totalStats.failed} failed, ${totalStats.broken} broken, ${totalStats.skipped} skipped, ${totalStats.total} total`)
+    }
     
     return { passed: executionPassed, stats: totalStats }
 }
@@ -395,95 +414,178 @@ async function cleanupOldReportsAndGetNextId(componentReportDir: string): Promis
     return historyDirs[historyDirs.length - 1] + 1 || 1
 }
 
+async function cleanupDraftRelease(componentReportDir: string, releaseVersion: string) {
+    // Only cleanup if this is a non-draft release
+    if (releaseVersion.includes('-draft')) {
+        return;
+    }
+    
+    // Check if there's a corresponding draft version
+    const draftVersion = `${releaseVersion}-draft`;
+    const draftPath = `${componentReportDir}/${draftVersion}`;
+    
+    if (existsSync(draftPath)) {
+        console.log(`Cleaning up draft release: ${draftVersion}`);
+        await cmd(`rm -rf ${draftPath}`);
+        
+        // Remove draft from manifest
+        const manifestPath = `${componentReportDir}/releases.json`;
+        if (existsSync(manifestPath)) {
+            try {
+                const manifestData = readFileSync(manifestPath, 'utf-8');
+                const releases = JSON.parse(manifestData);
+                const filteredReleases = releases.filter((r: any) => r.version !== draftVersion);
+                writeFileSync(manifestPath, JSON.stringify(filteredReleases, null, 2));
+                console.log(`Removed ${draftVersion} from releases manifest`);
+            } catch (error) {
+                console.warn(`Failed to update manifest after draft cleanup:`, error);
+            }
+        }
+    }
+}
+
 async function handleReleaseReport(env: environment) {
     const tmpResultsDir: string = "tmp/results"
     const componentReportDir: string = `public/reports/release`
     const releaseVersion = env.releaseVersion!
-    
-    // Directory setup
-    await setupDirectories(tmpResultsDir, componentReportDir, undefined, releaseVersion)
-    
-    // Process runners and get results
-    const {passed: executionPassed, stats: totalStats} = await processRunners(env, tmpResultsDir)
-    
-    // Generate release metadata with test statistics
-    generateReleaseMetadata(tmpResultsDir, env, totalStats)
-    
-    // Generate Allure report
-    const innerReportUrl = `/reports/release/${releaseVersion}`
+    let executionPassed = true
+    let exceptionOccurred = false
     const externalReportUrl = `${externalBaseUrl}release/${releaseVersion}`
     
-    await generateAllureReport(tmpResultsDir, `${componentReportDir}/${releaseVersion}`, env, innerReportUrl, 0)
+    try {
+        // Cleanup draft version if this is a final release
+        await cleanupDraftRelease(componentReportDir, releaseVersion)
+        
+        // Directory setup
+        await setupDirectories(tmpResultsDir, componentReportDir, undefined, releaseVersion)
+        
+        // Process runners and get results
+        const result = await processRunners(env, tmpResultsDir)
+        executionPassed = result.passed
+        const totalStats = result.stats
+        
+        // Generate release metadata with test statistics
+        generateReleaseMetadata(tmpResultsDir, env, totalStats)
+        
+        // Generate Allure report
+        const innerReportUrl = `/reports/release/${releaseVersion}`
+        
+        await generateAllureReport(tmpResultsDir, `${componentReportDir}/${releaseVersion}`, env, innerReportUrl, 0)
+        
+        // Copy release-info.json to output directory
+        await cmd(`cp ${tmpResultsDir}/release-info.json ${componentReportDir}/${releaseVersion}/`)
+        
+        // Update releases.json manifest
+        await updateReleasesManifest(componentReportDir, releaseVersion)
+    } catch (error) {
+        exceptionOccurred = true
+        executionPassed = false
+        console.error(`[RELEASE REPORT] Exception occurred during report generation for ${releaseVersion}:`, error)
+    }
     
-    // Copy release-info.json to output directory
-    await cmd(`cp ${tmpResultsDir}/release-info.json ${componentReportDir}/${releaseVersion}/`)
-    
-    // Update releases.json manifest
-    await updateReleasesManifest(componentReportDir, releaseVersion)
-    
-    // Notify slack if execution failed
-    if (!executionPassed) {
-        await slack.sendSlackErrorMessage(externalReportUrl, env)
+    // Notify slack if execution failed or exception occurred
+    if (!executionPassed || exceptionOccurred) {
+        try {
+            console.log(`[SLACK] Sending failure notification for release ${releaseVersion} (executionPassed: ${executionPassed}, exceptionOccurred: ${exceptionOccurred})`)
+            await slack.sendSlackErrorMessage(externalReportUrl, env)
+            console.log(`[SLACK] Notification sent successfully for release ${releaseVersion}`)
+        } catch (slackError) {
+            console.error(`[SLACK] Failed to send notification for release ${releaseVersion}:`, slackError)
+            // Re-throw to ensure the error is not silently swallowed
+            throw new Error(`Failed to send Slack notification: ${slackError}`)
+        }
+    } else {
+        console.log(`[RELEASE REPORT] All tests passed for release ${releaseVersion}, no Slack notification needed`)
     }
 }
 
 async function run() {
-    // Validate environment variables
-    const env: environment = JSON.parse(atob(process.env.ENV!))
-    
-    if (env.component === 'release') {
-        validateReleaseEnvironment()
-    } else {
-        validateBaseEnvironment()
-    }
-
-    const hasPages = existsSync('./public')
-    if (!hasPages) {
-        await cmd(`cp -r ./initial-pages/. ./public`)
-    }
-
-    // NEW: Release-specific logic
-    if (env.component === 'release') {
-        await handleReleaseReport(env);
-        return;
-    }
-
-    const tmpResultsDir: string = "tmp/results"
-    const componentLastHistory: string = `latest-history/${env.component}`
-    const componentReportDir: string = `public/reports/${env.component}`
-
-    // Directory setup
-    await setupDirectories(tmpResultsDir, componentReportDir, componentLastHistory)
-
-    // Process runners and get results
-    const {passed: executionPassed} = await processRunners(env, tmpResultsDir)
-
-    // Delete extra reports and get next report ID
-    const nextReportId = await cleanupOldReportsAndGetNextId(componentReportDir)
+    let executionPassed = true
+    let exceptionOccurred = false
+    let env: environment
     
     try {
-        // Copy latest history for generation
-        await cmd(`cp -r ${componentLastHistory}/. ${tmpResultsDir}/history`)
-    } catch (_) {
-        console.warn("History not found, skipping.")
+        // Validate environment variables
+        env = JSON.parse(atob(process.env.ENV!))
+        
+        if (env.component === 'release') {
+            validateReleaseEnvironment()
+        } else {
+            validateBaseEnvironment()
+        }
+
+        const hasPages = existsSync('./public')
+        if (!hasPages) {
+            await cmd(`cp -r ./initial-pages/. ./public`)
+        }
+
+        // NEW: Release-specific logic
+        if (env.component === 'release') {
+            await handleReleaseReport(env);
+            return;
+        }
+
+        const tmpResultsDir: string = "tmp/results"
+        const componentLastHistory: string = `latest-history/${env.component}`
+        const componentReportDir: string = `public/reports/${env.component}`
+
+        // Directory setup
+        await setupDirectories(tmpResultsDir, componentReportDir, componentLastHistory)
+
+        // Process runners and get results
+        const result = await processRunners(env, tmpResultsDir)
+        executionPassed = result.passed
+
+        // Delete extra reports and get next report ID
+        const nextReportId = await cleanupOldReportsAndGetNextId(componentReportDir)
+        
+        try {
+            // Copy latest history for generation
+            await cmd(`cp -r ${componentLastHistory}/. ${tmpResultsDir}/history`)
+        } catch (_) {
+            console.warn("History not found, skipping.")
+        }
+
+        // Variables
+        const innerReportUrl = `./reports/${env.component}/${nextReportId}`
+        const externalReportUrl = `${externalBaseUrl}${env.component}/${nextReportId}`
+
+        // Generate Allure report
+        await generateAllureReport(tmpResultsDir, `${componentReportDir}/${nextReportId}`, env, innerReportUrl, nextReportId)
+        
+        // Generate redirect page to latest report
+        generateRedirectPage(env.component, nextReportId)
+
+        // Update latest history for the component
+        await cmd(`cp -r ${componentReportDir}/${nextReportId}/history/. ${componentLastHistory}`)
+    } catch (error) {
+        exceptionOccurred = true
+        executionPassed = false
+        // Try to get env from error context, but if ENV parsing failed, we can't send Slack
+        try {
+            env = JSON.parse(atob(process.env.ENV!))
+            const componentName = env.component
+            console.error(`[REPORT] Exception occurred during report generation for component ${componentName}:`, error)
+        } catch {
+            console.error(`[REPORT] Exception occurred before environment initialization:`, error)
+            throw new Error(`Report generation failed before environment initialization: ${error}`)
+        }
     }
 
-    // Variables
-    const innerReportUrl = `./reports/${env.component}/${nextReportId}`
-    const externalReportUrl = `${externalBaseUrl}${env.component}/${nextReportId}`
-
-    // Generate Allure report
-    await generateAllureReport(tmpResultsDir, `${componentReportDir}/${nextReportId}`, env, innerReportUrl, nextReportId)
-    
-    // Generate redirect page to latest report
-    generateRedirectPage(env.component, nextReportId)
-
-    // Update latest history for the component
-    await cmd(`cp -r ${componentReportDir}/${nextReportId}/history/. ${componentLastHistory}`)
-
-    // Notify slack if execution failed
-    if (!executionPassed) {
-        await slack.sendSlackErrorMessage(externalReportUrl, env)
+    // Notify slack if execution failed or exception occurred
+    if (!executionPassed || exceptionOccurred) {
+        try {
+            const externalReportUrl = `${externalBaseUrl}${env.component}/${env.component === 'release' ? env.releaseVersion : 'latest'}`
+            console.log(`[SLACK] Sending failure notification for component ${env.component} (executionPassed: ${executionPassed}, exceptionOccurred: ${exceptionOccurred})`)
+            await slack.sendSlackErrorMessage(externalReportUrl, env)
+            console.log(`[SLACK] Notification sent successfully for component ${env.component}`)
+        } catch (slackError) {
+            console.error(`[SLACK] Failed to send notification for component ${env.component}:`, slackError)
+            // Re-throw to ensure the error is not silently swallowed
+            throw new Error(`Failed to send Slack notification: ${slackError}`)
+        }
+    } else {
+        console.log(`[REPORT] All tests passed for component ${env.component}, no Slack notification needed`)
     }
 }
 

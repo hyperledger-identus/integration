@@ -9,9 +9,6 @@ on:
         type: string
       component:
         type: string
-      release-version:
-        type: string
-        required: false
       sdk-ts:
         type: boolean
       sdk-kmp:
@@ -28,7 +25,6 @@ jobs:
       ENV: ${{ inputs.ENV }}
       GH_TOKEN: ${{ secrets.IDENTUS_CI }}
       SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-      RELEASE_VERSION: ${{ inputs.release-version }}
 
     steps:
       - name: Checkout

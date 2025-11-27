@@ -18,9 +18,11 @@
     "@types/jsdom": "^27.0.0",
     "@types/node": "^24.10.1",
     "@types/yargs": "^17.0.35",
+    "@vitest/coverage-v8": "^2.1.8",
     "allure-commandline": "^2.34.1",
     "tsx": "^4.20.6",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^2.1.8"
   },
   "scripts": {
     "environment": "npx tsx src/cli/environment",
@@ -32,6 +34,9 @@
     "integration": "npx tsx src/cli/integration",
     "report": "npx tsx src/cli/report",
     "report:regenerate": "npx tsx src/cli/regenerate",
-    "manual": "npx tsx src/cli/manual.ts"
+    "manual": "npx tsx src/cli/manual.ts",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest --coverage"
   }
 }

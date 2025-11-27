@@ -126,19 +126,8 @@ export async function runManualIntegration(options: ManualRunOptions): Promise<M
   const runId = generateManualRunId()
   
   try {
-    console.log(`Starting manual integration run: ${runId}`)
-    console.log(`Test mode: ${options.payload.testMode}`)
-    
-    // Validate all service versions exist
-    console.log('Validating service versions...')
     await validateAllServiceVersions(options.payload.services)
-    
-    // Validate all SDK versions exist
-    console.log('Validating SDK versions...')
     await validateAllSDKVersions(options.payload.sdks)
-    
-    // Generate manual environment
-    console.log('Generating manual environment...')
     const envConfig: ManualEnvironmentConfig = {
       runId,
       timestamp: startTime,
@@ -147,20 +136,9 @@ export async function runManualIntegration(options: ManualRunOptions): Promise<M
     
     const environment = generateManualEnvironment(envConfig)
     const reportConfig = createManualReportConfig(options.payload, runId)
-    
-    console.log('Environment generated successfully')
-    console.log('Enabled services:', reportConfig.services.map(c => `${c.name}@${c.version}`).join(', '))
-    console.log('Enabled SDKs:', reportConfig.sdks.map(c => `${c.name}@${c.version}`).join(', '))
-    
-    // Set up environment variable for cloud and integration runners
+
     process.env.ENV = btoa(JSON.stringify(environment))
-    
-    // Run cloud setup first
-    console.log('Setting up cloud infrastructure...')
-    await cloud.run('setup')
-    console.log('Cloud infrastructure ready')
-    
-    // Run integration tests for each enabled SDK
+        
     const integrationResults: any[] = []
     const enabledRunners = Object.entries(environment.runners)
       .filter(([_, config]) => config.enabled)
