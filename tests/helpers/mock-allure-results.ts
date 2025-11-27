@@ -2,6 +2,8 @@
  * Mock Allure result data generators for testing
  */
 
+import type { environment } from '../../src/types';
+
 export interface MockTestResult {
   uuid: string;
   status: 'passed' | 'failed' | 'broken' | 'skipped' | 'unknown';
@@ -167,7 +169,7 @@ export async function createMockAllureResultsDir(
 /**
  * Generate mock environment object
  */
-export function generateMockEnvironment(overrides: Partial<any> = {}): any {
+export function generateMockEnvironment(overrides: Partial<environment> = {}): environment {
   return {
     component: 'release',
     releaseVersion: '1.0.0',

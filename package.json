@@ -39,10 +39,12 @@
     "report": "npx tsx src/cli/report",
     "report:regenerate": "npx tsx src/cli/regenerate",
     "manual": "npx tsx src/cli/manual.ts",
-    "test": "vitest",
+    "test": "vitest run",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage",
-    "lint": "eslint src/**/*.ts",
-    "lint:fix": "eslint src/**/*.ts --fix"
+    "lint": "eslint 'src/**/*.ts'",
+    "lint:fix": "eslint 'src/**/*.ts' --fix",
+    "lint:test": "eslint 'tests/**/*.ts'",
+    "lint:test:fix": "eslint 'tests/**/*.ts' --fix"
   }
 }

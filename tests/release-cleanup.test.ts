@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mkdirSync, writeFileSync, existsSync, readFileSync, rmSync } from 'fs';
 import { join } from 'path';
 import { createTempDir, cleanupTempDir } from './helpers/test-utils.js';
+import type { ReleaseManifestEntry } from '../src/types.js';
 
 // Mock cmd module
 vi.mock('../cmd.js', () => ({
@@ -79,7 +80,7 @@ describe('Release Cleanup', () => {
       expect(existsSync(manifestPath)).toBe(true);
       
       const content = readFileSync(manifestPath, 'utf-8');
-      const parsed = JSON.parse(content);
+      const parsed = JSON.parse(content) as ReleaseManifestEntry[];
       
       expect(parsed).toHaveLength(1);
       expect(parsed[0].version).toBe('1.0.0-draft');
@@ -98,11 +99,11 @@ describe('Release Cleanup', () => {
       writeFileSync(manifestPath, JSON.stringify(releases, null, 2));
       
       const content = readFileSync(manifestPath, 'utf-8');
-      const parsed = JSON.parse(content);
+      const parsed = JSON.parse(content) as ReleaseManifestEntry[];
       
       expect(parsed).toHaveLength(1);
       expect(parsed[0].version).toBe('1.0.0');
-      expect(parsed.find((r: any) => r.version === '1.0.0-draft')).toBeUndefined();
+      expect(parsed.find((r: ReleaseManifestEntry) => r.version === '1.0.0-draft')).toBeUndefined();
     });
   });
   

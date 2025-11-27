@@ -2,7 +2,7 @@
  * Tests for validation functions
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { validateReleaseEnvironment } from '../src/config/validation.js';
 
 describe('Validation', () => {

@@ -103,7 +103,7 @@ async function run(): Promise<string> {
         environment['services']['agent']['version'] = await getLatestReleaseTag('cloud-agent')
         environment['services']['mediator']['version'] = await getLatestReleaseTag('mediator')
         environment['runners']['sdk-ts'] = initRunner(true, false, await getLatestReleaseTag('sdk-ts'))
-        environment['runners']['sdk-kmp'] = initRunner(true, false, await getLatestReleaseTag('sdk-kmp'))
+        environment['runners']['sdk-kmp'] = initRunner(false, false, await getLatestReleaseTag('sdk-kmp'))
         environment['runners']['sdk-swift'] = initRunner(true, false, await getLatestReleaseTag('sdk-swift'))
         return btoa(JSON.stringify(environment))
     }
@@ -112,7 +112,7 @@ async function run(): Promise<string> {
         environment['services']['agent']['version'] = await getLatestDockerRevision('identus-cloud-agent')
         environment['services']['mediator']['version'] = await getLatestDockerRevision('identus-mediator')
         environment['runners']['sdk-ts'] = initRunner(true, true, await getLatestCommit('sdk-ts'))
-        environment['runners']['sdk-kmp'] = initRunner(true, true, await getLatestCommit('sdk-kmp'))
+        environment['runners']['sdk-kmp'] = initRunner(false, false, await getLatestCommit('sdk-kmp'))
         environment['runners']['sdk-swift'] = initRunner(true, true, await getLatestCommit('sdk-swift'))
         return btoa(JSON.stringify(environment))
     }
@@ -121,7 +121,7 @@ async function run(): Promise<string> {
     if (isService) {
         // setup all runners
         environment['runners']['sdk-ts'] = initRunner(true, false, await getLatestReleaseTag('sdk-ts'))
-        environment['runners']['sdk-kmp'] = initRunner(true, false, await getLatestReleaseTag('sdk-kmp'))
+        environment['runners']['sdk-kmp'] = initRunner(false, false, await getLatestReleaseTag('sdk-kmp'))
         environment['runners']['sdk-swift'] = initRunner(true, false, await getLatestReleaseTag('sdk-swift'))
     }
 

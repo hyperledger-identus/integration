@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdirSync, writeFileSync, existsSync, readFileSync, readdirSync } from 'fs';
+import { mkdirSync, writeFileSync, existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import {
   generateMockRunnerResults,
@@ -11,11 +11,12 @@ import {
   generateMockEnvironment
 } from './helpers/mock-allure-results.js';
 import { createTempDir, cleanupTempDir } from './helpers/test-utils.js';
+import type { environment, ReleaseManifestEntry } from '../src/types.js';
 
 // Mock cmd module
 const mockCmd = vi.fn();
 vi.mock('../cmd.js', () => ({
-  cmd: (...args: any[]) => mockCmd(...args)
+  cmd: (...args: unknown[]): unknown => mockCmd(...args)
 }));
 
 // Mock slack module
@@ -83,7 +84,7 @@ describe('Release Flow Integration', () => {
     it('should generate release metadata with correct structure', () => {
       const env = generateMockEnvironment({
         releaseVersion: '1.0.0'
-      });
+      }) as environment;
       
       const testStats = {
         passed: 53,
@@ -122,7 +123,7 @@ describe('Release Flow Integration', () => {
     it('should handle draft release metadata correctly', () => {
       const env = generateMockEnvironment({
         releaseVersion: '1.0.0-draft'
-      });
+      }) as environment;
       
       const testStats = {
         passed: 25,
@@ -149,7 +150,7 @@ describe('Release Flow Integration', () => {
       const manifestPath = join(componentReportDir, 'releases.json');
       
       // Initial state: empty manifest
-      let releases: any[] = [];
+      let releases: ReleaseManifestEntry[] = [];
       
       // Add draft release
       releases.push({
@@ -162,7 +163,7 @@ describe('Release Flow Integration', () => {
       
       // Verify draft exists
       let content = readFileSync(manifestPath, 'utf-8');
-      let parsed = JSON.parse(content);
+      let parsed = JSON.parse(content) as ReleaseManifestEntry[];
       expect(parsed).toHaveLength(1);
       expect(parsed[0].version).toBe('1.0.0-draft');
       
@@ -180,10 +181,10 @@ describe('Release Flow Integration', () => {
       
       // Verify only final release exists
       content = readFileSync(manifestPath, 'utf-8');
-      parsed = JSON.parse(content);
+      parsed = JSON.parse(content) as ReleaseManifestEntry[];
       expect(parsed).toHaveLength(1);
       expect(parsed[0].version).toBe('1.0.0');
-      expect(parsed.find((r: any) => r.version === '1.0.0-draft')).toBeUndefined();
+      expect(parsed.find((r: ReleaseManifestEntry) => r.version === '1.0.0-draft')).toBeUndefined();
     });
     
     it('should sort releases by version correctly', () => {
@@ -253,10 +254,10 @@ describe('Release Flow Integration', () => {
       
       // Verify cleanup
       const content = readFileSync(manifestPath, 'utf-8');
-      const parsed = JSON.parse(content);
+      const parsed = JSON.parse(content) as ReleaseManifestEntry[];
       expect(parsed).toHaveLength(1);
       expect(parsed[0].version).toBe(finalVersion);
-      expect(parsed.find((r: any) => r.version === draftVersion)).toBeUndefined();
+      expect(parsed.find((r: ReleaseManifestEntry) => r.version === draftVersion)).toBeUndefined();
     });
   });
 });
