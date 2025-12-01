@@ -4,7 +4,7 @@
   "description": "Integration repository for Identus components",
   "type": "module",
   "author": "Allain Magyar",
-  "license": "ISC",
+  "license": "Apache-2.0",
   "dependencies": {
     "@actions/artifact": "^4.0.0",
     "boxen": "^8.0.1",
