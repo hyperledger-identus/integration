@@ -1,3 +1,3 @@
-FROM busybox:1.36.1
+FROM busybox:1.36.1@sha256:355b3a1bf5609da364166913878a8508d4ba30572d02020a97028c75477e24ff
 
 ENTRYPOINT ["tail", "-f", "/dev/null"]

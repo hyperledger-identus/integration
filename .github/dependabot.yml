@@ -1,0 +1,26 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /docker
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /docker/mongodb
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /docker/postres
+    schedule:
+      interval: daily
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: daily

@@ -3,6 +3,9 @@ name: Update Static Files
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   update-static:
     runs-on: ubuntu-latest
@@ -15,8 +18,13 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2 # v2.13.2
+        with:
+          egress-policy: audit
+
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           token: ${{ secrets.IDENTUS_CI }}
           fetch-depth: 0
@@ -27,7 +35,7 @@ jobs:
           github-token: ${{ secrets.IDENTUS_CI }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '20'
 
@@ -45,4 +53,4 @@ jobs:
           gpg-passphrase: ${{ secrets.HYP_BOT_GPG_PASSWORD }}
 
       - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
