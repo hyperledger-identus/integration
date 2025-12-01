@@ -1,5 +1,6 @@
 # Identus integration suite
 
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/hyperledger-identus/integration/badge)](https://scorecard.dev/viewer/?uri=github.com/hyperledger-identus/integration)
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue.svg)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-20-green.svg)](https://nodejs.org/)
