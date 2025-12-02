@@ -1,4 +1,4 @@
-FROM postgres:13@sha256:4689940c683801b4ab839ab3b0a0a3555a5fe425371422310944e89eca7d8068
+FROM postgres:18@sha256:5ec39c188013123927f30a006987c6b0e20f3ef2b54b140dfa96dac6844d883f
 
 # Copy the initialization scripts into the Docker image
 COPY resources/postgres-init-script.sh /docker-entrypoint-initdb.d/init-script.sh
