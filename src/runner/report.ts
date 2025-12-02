@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync, openSync, closeSync, ftruncateSync, writeSync, constants } from 'fs';
 import { cmd } from "../cmd.js";
 import { environment, runner, runners, ReleaseMetadata, ReleaseManifestEntry, TestStats, ParsedVersion } from "../types.js";
 import { slack } from "../slack.js";
@@ -232,12 +232,15 @@ async function updateReleasesManifest(componentReportDir: string, releaseVersion
     const manifestPath = `${componentReportDir}/releases.json`;
     let releases: ReleaseManifestEntry[] = [];
     
-    // Read existing manifest if it exists
-    if (existsSync(manifestPath)) {
-        try {
-            const manifestData = readFileSync(manifestPath, 'utf-8');
-            releases = JSON.parse(manifestData) as ReleaseManifestEntry[];
-        } catch {
+    // Read existing manifest if it exists (use try-catch to avoid TOCTOU vulnerability)
+    try {
+        const manifestData = readFileSync(manifestPath, 'utf-8');
+        releases = JSON.parse(manifestData) as ReleaseManifestEntry[];
+    } catch (error) {
+        // File doesn't exist or parse error - create new manifest
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+            // File doesn't exist, will create new one
+        } else {
             console.warn('Failed to read existing releases manifest, creating new one');
         }
     }
@@ -270,8 +273,20 @@ async function updateReleasesManifest(componentReportDir: string, releaseVersion
         return b.version.localeCompare(a.version);
     });
     
-    // Write updated manifest
-    writeFileSync(manifestPath, JSON.stringify(releases, null, 2));
+    // Write updated manifest using file descriptor to avoid TOCTOU vulnerability
+    try {
+        const fd = openSync(manifestPath, constants.O_CREAT | constants.O_WRONLY | constants.O_TRUNC, 0o644);
+        try {
+            const data = Buffer.from(JSON.stringify(releases, null, 2), 'utf-8');
+            writeSync(fd, data, 0, data.length);
+        } finally {
+            closeSync(fd);
+        }
+    } catch (error) {
+        const errorMessage = `Failed to write releases manifest: ${error instanceof Error ? error.message : String(error)}`;
+        console.error(errorMessage);
+        throw new Error(errorMessage, { cause: error });
+    }
 }
 
 function parseVersion(version: string): ParsedVersion | null {
@@ -519,14 +534,25 @@ async function cleanupDraftRelease(componentReportDir: string, releaseVersion: s
         
         // Remove draft from manifest
         const manifestPath = `${componentReportDir}/releases.json`;
-        if (existsSync(manifestPath)) {
+        try {
+            // Use file descriptor to avoid TOCTOU vulnerability
+            const fd = openSync(manifestPath, constants.O_RDWR);
             try {
-                const manifestData = readFileSync(manifestPath, 'utf-8');
+                const manifestData = readFileSync(fd, 'utf-8');
                 const releases = JSON.parse(manifestData) as ReleaseManifestEntry[];
                 const filteredReleases = releases.filter((r) => r.version !== draftVersion);
-                writeFileSync(manifestPath, JSON.stringify(filteredReleases, null, 2));
+                // Truncate and write atomically using the same file descriptor
+                ftruncateSync(fd, 0);
+                const data = Buffer.from(JSON.stringify(filteredReleases, null, 2), 'utf-8');
+                writeSync(fd, data, 0, data.length);
                 console.log(`Removed ${draftVersion} from releases manifest`);
-            } catch (error) {
+            } finally {
+                // Close file descriptor
+                closeSync(fd);
+            }
+        } catch (error) {
+            // File doesn't exist or other error - log and continue
+            if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
                 console.warn(`Failed to update manifest after draft cleanup:`, error);
             }
         }
