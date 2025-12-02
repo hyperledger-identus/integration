@@ -80,7 +80,7 @@ jobs:
           SDK_KMP_VERSION:  ${{ github.event.inputs.sdk_kmp_version }}
           SDK_SWIFT_VERSION:  ${{ github.event.inputs.sdk_swift_version }}
         run: |
-          npm install
+          npm ci
           npm run environment:manual
           ENV="$(cat env)"
           echo "env=$ENV" >> "$GITHUB_OUTPUT"
@@ -116,7 +116,7 @@ jobs:
 
       - name: Setup environment
         run: |
-          npm install
+          npm ci
           npm run cloud:check
           npm run cloud:setup
 
