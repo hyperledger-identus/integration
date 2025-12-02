@@ -26,6 +26,9 @@ on:
     types:
       - 'integration'
 
+permissions:
+  contents: read
+      
 jobs:
   # Main job: Generate environment configuration
   # Determines which SDKs to run and creates base64-encoded environment config
