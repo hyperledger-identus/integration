@@ -1,4 +1,4 @@
-FROM mongo:6.0@sha256:0a83b2f824b29c94c5284a49b018db2e3166d9879d1edda5cce545d899ef2bbb
+FROM mongo:8.2@sha256:7245ffb851d149dbfac67397caf91bae4974d899972f9fd1d8985fc6eea3c13d
 
 # Copy the initialization script
 COPY resources/mongo-initdb.js /docker-entrypoint-initdb.d/initdb.js
