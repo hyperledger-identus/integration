@@ -2,6 +2,7 @@
  * Mock Allure result data generators for testing
  */
 
+import { randomBytes } from 'crypto';
 import type { environment } from '../../src/types';
 
 export interface MockTestResult {
@@ -30,7 +31,12 @@ export function generateMockAllureResult(
     name?: string;
   } = {}
 ): MockTestResult {
-  const uuid = `test-${testCaseId}-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+  // Use cryptographically secure random bytes instead of Math.random()
+  // Generate 6 random bytes and convert to base36 for similar format to original
+  const randomBuf = randomBytes(6);
+  const randomNum = randomBuf.readUIntBE(0, 6);
+  const randomString = randomNum.toString(36);
+  const uuid = `test-${testCaseId}-${Date.now()}-${randomString}`;
   
   const labels: MockTestResult['labels'] = [];
   
