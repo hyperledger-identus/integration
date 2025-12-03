@@ -36,10 +36,20 @@ jobs:
           node-version: 20
 
       - name: Install rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- -y
+        run: |
+          URL="https://raw.githubusercontent.com/rust-lang/rustup/refs/tags/1.28.2/rustup-init.sh"
+          EXPECTED_HASH="17247e4bcacf6027ec2e11c79a72c494c9af69ac8d1abcc1b271fa4375a106c2"
+          curl -sSfL "$URL" -o rustup-init.sh
+          echo "$EXPECTED_HASH rustup-init.sh" | sha256sum -c -
+          sh rustup-init.sh -y
 
       - name: Install wasm-pack
-        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+        run: |
+          URL="https://raw.githubusercontent.com/drager/wasm-pack/refs/tags/v0.13.1/docs/_installer/init.sh"
+          EXPECTED_HASH="3e91ccfb5ca63dfd6761a3b7acbf6aca04be365e900468888e6615e79528a7cc"
+          curl -sSfL "$URL" -o wasm-pack-init.sh
+          echo "$EXPECTED_HASH wasm-pack-init.sh" | sha256sum -c -
+          sh wasm-pack-init.sh -y
 
       - name: Install dependencies
         run: npm ci
