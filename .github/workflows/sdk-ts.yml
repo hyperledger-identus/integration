@@ -22,24 +22,34 @@ jobs:
 
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2 # v2.13.2
+        uses: step-security/harden-runner@df199fb7be9f65074067a9eb93f12bb4c5547cf2 # v2.13.3
         with:
           egress-policy: audit
 
       - name: Checkout
-        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           fetch-depth: 1
 
-      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+      - uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
         with:
           node-version: 20
 
       - name: Install rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- -y
+        run: |
+          URL="https://raw.githubusercontent.com/rust-lang/rustup/refs/tags/1.28.2/rustup-init.sh"
+          EXPECTED_HASH="17247e4bcacf6027ec2e11c79a72c494c9af69ac8d1abcc1b271fa4375a106c2"
+          curl -sSfL "$URL" -o rustup-init.sh
+          echo "$EXPECTED_HASH rustup-init.sh" | sha256sum -c -
+          sh rustup-init.sh -y
 
       - name: Install wasm-pack
-        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+        run: |
+          URL="https://raw.githubusercontent.com/drager/wasm-pack/refs/tags/v0.13.1/docs/_installer/init.sh"
+          EXPECTED_HASH="3e91ccfb5ca63dfd6761a3b7acbf6aca04be365e900468888e6615e79528a7cc"
+          curl -sSfL "$URL" -o wasm-pack-init.sh
+          echo "$EXPECTED_HASH wasm-pack-init.sh" | sha256sum -c -
+          sh wasm-pack-init.sh -y
 
       - name: Install dependencies
         run: npm ci
