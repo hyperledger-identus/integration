@@ -57,7 +57,7 @@ jobs:
           VERSION: ${{ github.event.inputs.release_version }}
           RUN_ID: ${{ github.run_id }}
         run: |
-          npm install
+          npm ci
           npm run environment
           ENV="$(cat env)"
           echo "env=$ENV" >> "$GITHUB_OUTPUT"
@@ -93,7 +93,7 @@ jobs:
 
       - name: Setup environment
         run: |
-          npm install
+          npm ci
           npm run cloud:check
           npm run cloud:setup
 
