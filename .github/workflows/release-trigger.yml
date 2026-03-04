@@ -8,9 +8,6 @@
 
 name: Release Integration
 
-permissions:
-  contents: read
-
 on:
   workflow_dispatch:
     inputs:
@@ -27,6 +24,8 @@ jobs:
   main:
     name: "Trigger 'release' integration"
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     outputs:
       env: ${{ steps.components.outputs.env }} # base64 encoded

@@ -1,8 +1,5 @@
 name: Generate report
 
-permissions:
-  contents: read
-
 on:
   workflow_call:
     inputs:
@@ -20,11 +17,12 @@ on:
         type: boolean
 
 jobs:
-  # Main report generation job
   report:
     name: "Generate report for ${{ inputs.component }}"
     runs-on: ubuntu-latest
-    timeout-minutes: 30 # Prevent hanging jobs
+    timeout-minutes: 30
+    permissions:
+      contents: read
     env:
       COMPONENT: ${{ inputs.component }}
       ENV: ${{ inputs.env }} # Base64-encoded environment config
