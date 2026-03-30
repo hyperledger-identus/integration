@@ -1,6 +1,6 @@
 import { ManualPayload, validateAllServiceVersions, validateAllSDKVersions } from '../config/manual-validation.js'
 import { integration } from './integration.js'
-import { environment, IntegrationResult, ManualRunResults, runner } from '../types.js'
+import { environment, IntegrationResult, ManualRunResults, runner } from '../shared/types.js'
 
 export interface ManualEnvironmentConfig {
   runId: string

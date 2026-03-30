@@ -1,7 +1,7 @@
 import * as dotenv from "dotenv"
 import { execSync } from 'child_process'
-import { cmd } from "../cmd.js"
-import { environment, runner, runnerConfig, runners } from "../types.js"
+import { cmd } from "../shared/cmd.js"
+import { environment, runner, runnerConfig, runners } from "../shared/types.js"
 import { TestRunner } from "../test-runner/test-runner.js"
 import { SwiftSdk } from '../test-runner/swift.js'
 import { KotlinSdk } from '../test-runner/kotlin.js'
@@ -26,10 +26,10 @@ function getRunner(requestedRunner: runner, runnerConfig: runnerConfig): TestRun
     return runner
 }
 
-async function runIntegration(sdk: TestRunner) {
+async function runIntegration(sdk: TestRunner, env: environment) {
     console.info(`[${sdk.name}] runner started`)
     try {
-        await sdk.execute()
+        await sdk.execute(env)
         console.info(`[${sdk.name}] runner finished successfully`)
     } catch (e) {
         console.error(`[${sdk.name}] runner failed:`, e)
@@ -43,15 +43,15 @@ async function run(requestedRunner: runner) {
 
     // Validate environment variables
     validateIntegrationEnvironment()
-    
+
     // Sanitize runner input
     const sanitizedRunner = sanitizeRunner(requestedRunner, [...runners] as string[]) as runner
-    
+
     // Validate and parse ENV variable
     if (!process.env.ENV) {
         throw new Error('ENV environment variable is required but not set')
     }
-    
+
     let env: environment
     try {
         env = JSON.parse(atob(process.env.ENV)) as environment
@@ -74,7 +74,7 @@ async function run(requestedRunner: runner) {
     const runner: TestRunner = getRunner(sanitizedRunner, runnerConfig)
     await runner.cleanup()
 
-    await runIntegration(runner)
+    await runIntegration(runner, env)
 
     // move to tmp for upload
     await runner.moveAllureResultsToTmp(sanitizedRunner)

@@ -1,5 +1,5 @@
-import { runner, SDKEnvironment } from "../types.js";
-import { cmd } from "../cmd.js";
+import { environment, runner, SDKEnvironment } from "../shared/types.js";
+import { cmd } from "../shared/cmd.js";
 
 export abstract class TestRunner {
     protected abstract readonly runCommand: string
@@ -31,13 +31,13 @@ export abstract class TestRunner {
         await cmd(`git checkout ${this.version}`, { cwd: this.repo })
     }
 
-    async execute() {
+    async execute(env: environment) {
         console.log(`[${this.name}] cloning repository`)
         await this.cloneRepository()
         console.log(`[${this.name}] preparing dependencies`)
         await this.prepare()
         console.log(`[${this.name}] starting tests`)
-        await cmd(this.runCommand, { cwd: this.testDir, env: this.env() })
+        await cmd(this.runCommand, { cwd: this.testDir, env: this.env(env) })
     }
 
     async moveAllureResultsToTmp(requestedRunner: string) {
@@ -45,14 +45,14 @@ export abstract class TestRunner {
         await cmd(`cp -r ${this.allureResultsDirectory}/. tmp/${requestedRunner}`)
     }
 
-    protected env() {
+    protected env(env: environment) {
         return {
             ...process.env,
-            ...this.sdkEnv()
+            ...this.sdkEnv(env)
         }
     }
 
     protected abstract getTagFromVersion(): string
-    protected abstract sdkEnv(): SDKEnvironment
+    protected abstract sdkEnv(env: environment): SDKEnvironment
     protected abstract prepare(): Promise<void>
 }

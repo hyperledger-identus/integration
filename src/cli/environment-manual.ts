@@ -2,6 +2,6 @@ import { writeFileSync } from "fs"
 import { run } from "../run.js"
 
 (async function () {
-    const env = run.manualEnvironment()
+    const env = await run.manualEnvironment()
     writeFileSync('env', env)
 })()

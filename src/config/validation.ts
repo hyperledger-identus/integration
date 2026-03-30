@@ -11,10 +11,8 @@ export interface EnvironmentConfig {
   COMPONENT?: string;
   VERSION?: string;
   RUN_ID?: string;
-  MEDIATOR_OOB_URL?: string;
-  AGENT_URL?: string;
   CLOUD_SERVICE_URL?: string;
-  CLOUD_SERVICE_PROJECT?: string;
+  CLOUD_SERVICE_TEMPLATE_ID?: string;
   CLOUD_SERVICE_TOKEN?: string;
 }
 
@@ -79,10 +77,8 @@ export function validateBaseEnvironment(): EnvironmentConfig {
     COMPONENT: process.env.COMPONENT,
     VERSION: process.env.VERSION,
     RUN_ID: process.env.RUN_ID,
-    MEDIATOR_OOB_URL: process.env.MEDIATOR_OOB_URL,
-    AGENT_URL: process.env.AGENT_URL,
     CLOUD_SERVICE_URL: process.env.CLOUD_SERVICE_URL,
-    CLOUD_SERVICE_PROJECT: process.env.CLOUD_SERVICE_PROJECT,
+    CLOUD_SERVICE_TEMPLATE_ID: process.env.CLOUD_SERVICE_TEMPLATE_ID,
     CLOUD_SERVICE_TOKEN: process.env.CLOUD_SERVICE_TOKEN
   }
 }
@@ -121,64 +117,15 @@ export function validateReleaseEnvironment(): EnvironmentConfig {
 }
 
 /**
- * Validates environment for cloud operations (requires GH_TOKEN)
- */
-export function validateCloudEnvironment(): EnvironmentConfig {
-  const env = validateBaseEnvironment()
-  const errors: ValidationError[] = []
-
-  // Check cloud-specific required variables
-  const cloudRequiredVars = [
-    'CLOUD_SERVICE_URL',
-    'CLOUD_SERVICE_PROJECT', 
-    'CLOUD_SERVICE_TOKEN'
-  ]
-
-  for (const varName of cloudRequiredVars) {
-    if (!process.env[varName] || process.env[varName]?.trim() === '') {
-      errors.push({
-        field: varName,
-        message: `${varName} is required for cloud operations but not set or empty`,
-        required: true
-      })
-    }
-  }
-
-  // Validate cloud service URL format
-  if (process.env.CLOUD_SERVICE_URL && !isValidUrl(process.env.CLOUD_SERVICE_URL)) {
-    errors.push({
-      field: 'CLOUD_SERVICE_URL',
-      message: 'CLOUD_SERVICE_URL must be a valid URL',
-      required: true
-    })
-  }
-
-  // If there are required field errors, throw
-  const requiredErrors = errors.filter(e => e.required)
-  if (requiredErrors.length > 0) {
-    const errorMessages = requiredErrors.map(e => `- ${e.message}`).join('\n')
-    const error = `Cloud environment validation failed:\n${errorMessages}`
-    throw new Error(error)
-  }
-
-  return {
-    ...env,
-    CLOUD_SERVICE_URL: process.env.CLOUD_SERVICE_URL!,
-    CLOUD_SERVICE_PROJECT: process.env.CLOUD_SERVICE_PROJECT!,
-    CLOUD_SERVICE_TOKEN: process.env.CLOUD_SERVICE_TOKEN!
-  }
-}
-
-/**
  * Validates environment for cloud operations only (no GH_TOKEN required)
  */
-export function validateCloudOnlyEnvironment(): EnvironmentConfig {
+export function validateCloudEnvironment(): EnvironmentConfig {
   const errors: ValidationError[] = []
 
   // Check only cloud-specific required variables
   const cloudRequiredVars = [
     'CLOUD_SERVICE_URL',
-    'CLOUD_SERVICE_PROJECT', 
+    'CLOUD_SERVICE_TEMPLATE_ID', 
     'CLOUD_SERVICE_TOKEN'
   ]
 
@@ -240,10 +187,8 @@ export function validateCloudOnlyEnvironment(): EnvironmentConfig {
     COMPONENT: process.env.COMPONENT,
     VERSION: process.env.VERSION,
     RUN_ID: process.env.RUN_ID,
-    MEDIATOR_OOB_URL: process.env.MEDIATOR_OOB_URL,
-    AGENT_URL: process.env.AGENT_URL,
     CLOUD_SERVICE_URL: process.env.CLOUD_SERVICE_URL!,
-    CLOUD_SERVICE_PROJECT: process.env.CLOUD_SERVICE_PROJECT!,
+    CLOUD_SERVICE_TEMPLATE_ID: process.env.CLOUD_SERVICE_TEMPLATE_ID!,
     CLOUD_SERVICE_TOKEN: process.env.CLOUD_SERVICE_TOKEN!
   }
 }
@@ -283,23 +228,6 @@ export function validateIntegrationEnvironment(): EnvironmentConfig {
     })
   }
 
-  // Check integration-specific variables if they exist
-  if (process.env.MEDIATOR_OOB_URL && !isValidUrl(process.env.MEDIATOR_OOB_URL)) {
-    errors.push({
-      field: 'MEDIATOR_OOB_URL',
-      message: 'MEDIATOR_OOB_URL must be a valid URL',
-      required: false
-    })
-  }
-
-  if (process.env.AGENT_URL && !isValidUrl(process.env.AGENT_URL)) {
-    errors.push({
-      field: 'AGENT_URL',
-      message: 'AGENT_URL must be a valid URL',
-      required: false
-    })
-  }
-
   // If there are required field errors, throw
   const requiredErrors = errors.filter(e => e.required)
   if (requiredErrors.length > 0) {
@@ -322,10 +250,8 @@ export function validateIntegrationEnvironment(): EnvironmentConfig {
     COMPONENT: process.env.COMPONENT,
     VERSION: process.env.VERSION,
     RUN_ID: process.env.RUN_ID,
-    MEDIATOR_OOB_URL: process.env.MEDIATOR_OOB_URL,
-    AGENT_URL: process.env.AGENT_URL,
     CLOUD_SERVICE_URL: process.env.CLOUD_SERVICE_URL,
-    CLOUD_SERVICE_PROJECT: process.env.CLOUD_SERVICE_PROJECT,
+    CLOUD_SERVICE_TEMPLATE_ID: process.env.CLOUD_SERVICE_TEMPLATE_ID,
     CLOUD_SERVICE_TOKEN: process.env.CLOUD_SERVICE_TOKEN
   }
 }

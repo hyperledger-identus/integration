@@ -6,6 +6,7 @@ test-results
 # misc
 env.json
 /scripts
+.idea
 
 # sdks
 /sdk-ts

@@ -15,25 +15,18 @@ export const components = [
     'manual'
 ] as const
 
-export const repos = [
-    "cloud-agent",
-    "mediator",
-    "sdk-ts",
-    "sdk-kmp",
-    "sdk-swift"
-] as const
-
-export const componentRepo = new Map<component, repo>([
-    ["cloud-agent", "cloud-agent"],
-    ["mediator", "mediator"],
-    ["sdk-ts", "sdk-ts"],
-    ["sdk-kmp", "sdk-kmp"],
-    ["sdk-swift", "sdk-swift"]
-])
+export const repos = {
+    "cloud-agent": "hyperledger-identus",
+    "mediator": "hyperledger-identus",
+    "sdk-ts": "hyperledger-identus",
+    "sdk-kmp": "hyperledger-identus",
+    "sdk-swift": "hyperledger-identus",
+    "atala-prism": "input-output-hk",
+} as const
 
 export type runner = typeof runners[number]
 export type component = typeof components[number]
-export type repo = typeof repos[number]
+export type repo = keyof typeof repos;
 export type environment = {
     component: component,
     releaseVersion?: string,
@@ -51,8 +44,16 @@ export type environment = {
         "sdk-swift": runnerConfig
     }
 }
-export type serviceConfig = { version: string }
-export type runnerConfig = { enabled: boolean, build: boolean, version: string }
+export type serviceConfig = {
+    version: string,
+    url: string
+}
+
+export type runnerConfig = {
+    enabled: boolean,
+    build: boolean,
+    version: string
+}
 
 // Release metadata interfaces
 export interface ReleaseMetadata {

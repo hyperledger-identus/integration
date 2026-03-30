@@ -1,6 +1,7 @@
 import { TestRunner } from "./test-runner.js";
-import { cmd } from "../cmd.js";
+import { cmd } from "../shared/cmd.js";
 import { readFileSync } from "fs";
+import { environment } from "../shared/types.js";
 
 export class TypescriptSdk extends TestRunner {
     readonly name = "sdk-ts"
@@ -14,10 +15,10 @@ export class TypescriptSdk extends TestRunner {
 
     readonly runCommand = `npm run test:sdk`
 
-    protected sdkEnv() {
+    protected sdkEnv(env: environment) {
         return {
-            MEDIATOR_OOB_URL: process.env.MEDIATOR_OOB_URL!,
-            AGENT_URL: process.env.AGENT_URL!
+            MEDIATOR_OOB_URL: env.services.mediator.url!,
+            AGENT_URL: env.services.agent.url!
         }
     }
 

@@ -1,5 +1,5 @@
 import { TestRunner } from "./test-runner.js";
-import { cmd } from "../cmd.js";
+import { cmd } from "../shared/cmd.js";
 
 export class KotlinSdk extends TestRunner {
     readonly name = "sdk-kmp"
