@@ -2,8 +2,6 @@
 
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/hyperledger-identus/integration/badge)](https://scorecard.dev/viewer/?uri=github.com/hyperledger-identus/integration)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue.svg)](https://www.typescriptlang.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-20-green.svg)](https://nodejs.org/)
 
 This repository aggregates the result of end-to-end test between the new components and stable components.
 
