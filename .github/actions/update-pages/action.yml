@@ -15,7 +15,7 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: crazy-max/ghaction-import-gpg@v6
+    - uses: crazy-max/ghaction-import-gpg@e89d40939c28e39f97cf32126055eeae86ba74ec # v6.3.0
       id: import_gpg
       with:
         gpg_private_key: ${{ inputs.gpg-private-key }}
@@ -33,7 +33,7 @@ runs:
         cp README.md public/static/README.md
 
     - name: Upload pages artifact
-      uses: actions/upload-pages-artifact@v3
+      uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
       with:
         path: './public'
         retention-days: 90
