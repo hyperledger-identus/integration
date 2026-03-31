@@ -78,6 +78,7 @@ jobs:
           RUN_ID: ${{ github.run_id }}
           CLOUD_AGENT_VERSION:  ${{ github.event.inputs.cloud_agent_version }}
           MEDIATOR_VERSION:  ${{ github.event.inputs.mediator_version }}
+          PRISM_NODE_VERSION: ${{ github.event.inputs.prism_node_version }}
           SDK_TS_VERSION:  ${{ github.event.inputs.sdk_ts_version }}
           SDK_KMP_VERSION:  ${{ github.event.inputs.sdk_kmp_version }}
           SDK_SWIFT_VERSION:  ${{ github.event.inputs.sdk_swift_version }}

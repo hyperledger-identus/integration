@@ -18,9 +18,9 @@ function generateManualEnvironment(config: ManualEnvironmentConfig): environment
       runId: parseInt(runId.replace(/\D/g, '').slice(0, 10)) || Date.now()
     },
     services: {
-      agent: { version: '' },
-      mediator: { version: '' },
-      node: { version: '2.5.0' }
+      agent: { version: '', url: '' },
+      mediator: { version: '', url: '' },
+      node: { version: '2.6.0', url: '' }
     },
     runners: {
       'sdk-ts': { enabled: false, build: false, version: '' },
