@@ -1,5 +1,5 @@
 import yargs from 'yargs'
-import { runners } from '../types.js'
+import { runners } from '../shared/types.js'
 import { run } from '../run.js'
 import { validateIntegrationEnvironment } from '../config/validation.js'
 import { sanitizeRunner } from '../config/sanitization.js'

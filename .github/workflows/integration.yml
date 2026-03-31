@@ -1,24 +1,10 @@
-# Integration Workflow
-# 
-# This workflow is triggered by repository_dispatch events from other repositories
-# when components need integration testing. It:
-# 1. Generates environment configuration based on component and version
-# 2. Sets up cloud services (agent, mediator, prism-node)
-# 3. Runs SDK tests in parallel (sdk-ts, sdk-swift, sdk-kmp)
-# 4. Aggregates results and generates Allure reports
-# 5. Deploys reports to GitHub Pages
-# 6. Sends Slack notifications on failure
-#
-# Trigger: repository_dispatch with type 'integration'
-# Payload: { "component": "<component>", "version": "<version>" }
-
 name: Integration
 
 run-name: "Integrate: ${{ github.event.client_payload.component }}"
 
 # Prevent concurrent runs to avoid resource conflicts
 concurrency:
-  group: 'integration-lock'
+  group: '${{ github.event.client_payload.component }}'
   cancel-in-progress: false
 
 on:
@@ -63,6 +49,9 @@ jobs:
           COMPONENT: ${{ github.event.client_payload.component }}
           VERSION: ${{ github.event.client_payload.version }}
           RUN_ID: ${{ github.run_id }}
+          CLOUD_SERVICE_TOKEN: ${{ secrets.CLOUD_SERVICE_TOKEN }}
+          CLOUD_SERVICE_URL: ${{ secrets.CLOUD_SERVICE_URL }}
+          CLOUD_SERVICE_TEMPLATE_ID: ${{ secrets.CLOUD_SERVICE_TEMPLATE_ID }}
         run: |
           npm ci
           npm run environment
@@ -73,43 +62,10 @@ jobs:
           echo "sdk-swift=$(echo $ENV | base64 --decode | jq -r '.runners.["sdk-swift"].enabled')" >> "$GITHUB_OUTPUT"
           echo $ENV | base64 --decode
 
-  # Cloud setup: Deploy cloud services (agent, mediator, prism-node)
-  # Uses the environment configuration to determine service versions
-  cloud-setup:
-    needs: main
-    name: Cloud setup
-    runs-on: ubuntu-latest
-    env:
-      ENV: ${{ needs.main.outputs.env }}
-      CLOUD_SERVICE_TOKEN: ${{ secrets.CLOUD_SERVICE_TOKEN }}
-      CLOUD_SERVICE_URL: ${{ secrets.CLOUD_SERVICE_URL }}
-      CLOUD_SERVICE_PROJECT: ${{ secrets.CLOUD_SERVICE_PROJECT }}
-
-    steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@fa2e9d605c4eeb9fcad4c99c224cee0c6c7f3594 # v2.16.0
-        with:
-          egress-policy: audit
-
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 1
-
-      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
-        with:
-          node-version: 20
-
-      - name: Setup environment
-        run: |
-          npm ci
-          npm run cloud:check
-          npm run cloud:setup
-
   # SDK runners: Execute tests for each enabled SDK
-  # These run in parallel after cloud setup completes
+  # These run in parallel after environment setup completes
   sdk-ts:
-    needs: [main, cloud-setup]
+    needs: [main]
     if: needs.main.outputs.sdk-ts  == 'true'
     secrets: inherit
     uses: ./.github/workflows/sdk-ts.yml
@@ -119,7 +75,7 @@ jobs:
   # Note: sdk-kmp is currently disabled due to SDK being broken
   # See src/test-runner/kotlin.ts for details
   sdk-kmp:
-    needs: [main, cloud-setup]
+    needs: [main]
     if: false # needs.main.outputs.sdk-kmp  == 'true' (disabled)
     secrets: inherit
     uses: ./.github/workflows/sdk-kmp.yml
@@ -127,7 +83,7 @@ jobs:
       ENV: ${{ needs.main.outputs.env }}
 
   sdk-swift:
-    needs: [main, cloud-setup]
+    needs: [main]
     if: needs.main.outputs.sdk-swift  == 'true'
     secrets: inherit
     uses: ./.github/workflows/sdk-swift.yml

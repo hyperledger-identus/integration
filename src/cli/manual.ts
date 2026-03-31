@@ -1,5 +1,5 @@
 import { Command } from 'commander'
-import { runManualIntegration, queueManualRun, ManualRunOptions } from '../runner/manual.js'
+import { runManualIntegration, queueManualRun, ManualRunOptions } from '../runner/environment-manual.js'
 import { validateManualPayload, ManualPayload } from '../config/manual-validation.js'
 
 export interface ManualCliOptions {

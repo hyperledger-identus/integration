@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync, openSync, closeSync, ftruncateSync, writeSync, constants } from 'fs';
-import { cmd } from "../cmd.js";
-import { environment, runner, runners, ReleaseMetadata, ReleaseManifestEntry, TestStats, ParsedVersion } from "../types.js";
-import { slack } from "../slack.js";
+import { cmd } from "../shared/cmd.js";
+import { environment, runner, runners, ReleaseMetadata, ReleaseManifestEntry, TestStats, ParsedVersion } from "../shared/types.js";
+import { slack } from "../shared/slack.js";
 import { join } from 'path';
 import { validateBaseEnvironment, validateReleaseEnvironment } from "../config/validation.js";
 

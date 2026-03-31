@@ -1,6 +1,6 @@
 import { environment } from "./types.js"
-import { validateBaseEnvironment } from "./config/validation.js"
-import { sanitizeUrl } from "./config/sanitization.js"
+import { validateBaseEnvironment } from "../config/validation.js"
+import { sanitizeUrl } from "../config/sanitization.js"
 
 // Constants
 const SLACK_MESSAGE_TEMPLATE = `:x: Integration of \`%COMPONENT%\`%VERSION% failed: <%REPORT%|Report> | <%WORKFLOW%|Workflow execution>`

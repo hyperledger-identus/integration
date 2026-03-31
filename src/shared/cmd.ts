@@ -1,6 +1,6 @@
 import { spawn, SpawnOptions } from "child_process"
 import { appendFileSync } from "fs"
-import { sanitizeCommand } from "./config/sanitization.js"
+import { sanitizeCommand } from "../config/sanitization.js"
 
 interface CommandError extends Error {
     stderr: string

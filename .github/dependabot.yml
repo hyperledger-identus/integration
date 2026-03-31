@@ -13,22 +13,6 @@ updates:
         patterns:
           - "*"
 
-  - package-ecosystem: "docker"
-    directories:
-      - "/docker"
-      - "/docker/mongodb"
-      - "/docker/postgres"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-    commit-message:
-      prefix: "chore"
-      include: "scope"
-    groups:
-      docker-deps:
-        patterns:
-          - "*"
-
   - package-ecosystem: "npm"
     directory: "/"
     schedule:

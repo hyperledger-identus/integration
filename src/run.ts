@@ -1,16 +1,12 @@
 
 import { report } from "./runner/report.js"
-import { docker } from "./runner/docker.js"
 import { integration } from "./runner/integration.js"
 import { env } from "./runner/environment.js"
-import { cloud } from "./runner/cloud.js"
 
 export const run = {
     integration: integration.run,
     environment: env.run,
     manualEnvironment: env.manualRun,
-    docker: docker.run,
     report: report.run,
     regenerate: report.regenerate,
-    cloud: cloud.run
 }
