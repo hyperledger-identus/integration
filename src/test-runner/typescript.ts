@@ -17,8 +17,8 @@ export class TypescriptSdk extends TestRunner {
 
     protected sdkEnv(env: environment) {
         return {
-            MEDIATOR_OOB_URL: env.services.mediator.url!,
-            AGENT_URL: env.services.agent.url!
+            MEDIATOR_OOB_URL: env.services.mediator.url + '/invitationOOB',
+            AGENT_URL: env.services.agent.url
         }
     }
 
