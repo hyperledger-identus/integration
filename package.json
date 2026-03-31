@@ -38,7 +38,6 @@
     "integration": "npx tsx src/cli/integration",
     "report": "npx tsx src/cli/report",
     "report:regenerate": "npx tsx src/cli/regenerate",
-    "manual": "npx tsx src/cli/manual.ts",
     "test": "vitest run",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage",
