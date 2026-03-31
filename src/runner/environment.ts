@@ -191,12 +191,10 @@ async function manualRun() {
         environment['runners']['sdk-swift']['version'] = process.env.SDK_SWIFT_VERSION
     }
 
-    const urls = await setupCloud(environment);
-
-    environment.services.agent.url = urls.agent
-    environment.services.mediator.url = urls.mediator
-    environment.services.node.url = urls.node
-
+    // setup cloud
+    const urls = await setupCloud(environment)
+    environment.services.agent.url = urls['cloud-agent:agent']
+    environment.services.mediator.url = urls['mediator']
     return btoa(JSON.stringify(environment))
 }
 
