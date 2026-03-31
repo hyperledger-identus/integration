@@ -42,6 +42,8 @@ jobs:
           sh rustup-init.sh -y
 
       - name: Install wasm-pack
+        env:
+          VERSION: v0.13.1
         run: |
           URL="https://raw.githubusercontent.com/drager/wasm-pack/refs/tags/v0.13.1/docs/_installer/init.sh"
           EXPECTED_HASH="3e91ccfb5ca63dfd6761a3b7acbf6aca04be365e900468888e6615e79528a7cc"
