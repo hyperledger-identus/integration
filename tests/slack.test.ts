@@ -3,9 +3,9 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { slack } from '../src/slack.js';
+import { slack } from '../src/shared/slack.js';
 import { generateMockEnvironment } from './helpers/mock-allure-results.js';
-import type { environment, component } from '../src/types.js';
+import type { environment, component } from '../src/shared/types.js';
 
 // Mock fetch globally
 const mockFetch = vi.fn();
