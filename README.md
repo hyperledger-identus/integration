@@ -32,21 +32,11 @@ We now support **manual integration testing** that allows developers to trigger 
 
 ### Quick Start
 
-**Via GitHub Actions** (Recommended):
+**Via GitHub Actions**:
 1. Go to **Actions** → **Manual Integration Tests**
 2. Click **"Run workflow"**
 3. Select components and enter versions
 4. Run the test
-
-**Via CLI**:
-
-```bash
-# Auto-detected as "sdk" mode (1 SDK)
-npm run manual -- --sdk-ts v1.0.0
-
-# Auto-detected as "all" mode (3 SDKs)
-npm run manual -- --sdk-ts v1.0.0 --sdk-swift v2.1.0 --sdk-kmp v0.5.0
-```
 
 ## End-to-end test matrix
 
@@ -85,29 +75,6 @@ npm run test:watch
 # Run tests with coverage
 npm run test:coverage
 ```
-
-### Test Coverage
-
-The test suite covers:
-- Report generation and aggregation logic
-- Release metadata and manifest management
-- Draft release cleanup functionality
-- Environment validation
-- Slack notification integration
-- Error handling and edge cases
-
-See [tests/README.md](tests/README.md) for detailed test documentation.
-
-## Code Quality Improvements
-
-Recent enhancements to the codebase include:
-
-- **Type Safety**: Replaced all `any` types with proper TypeScript interfaces
-- **Race Condition Fixes**: Fixed concurrent modification issues in parallel runner processing
-- **Error Handling**: Enhanced error messages with context, stack traces, and proper error propagation
-- **Code Organization**: Extracted constants, reduced duplication, and improved code structure
-- **Logging**: Created structured logging utility for consistent log formatting
-- **Documentation**: Added comprehensive JSDoc comments to all public functions
 
 ## Development
 
