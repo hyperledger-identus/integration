@@ -9,42 +9,21 @@
 
     const bulma = document.createElement('link');
     bulma.rel = 'stylesheet';
-    bulma.href = globalThis.basePath + 'static/bulma.css';
+    bulma.href = window.basePath + 'static/bulma.css';
     document.head.appendChild(bulma);
 
     const custom = document.createElement('link');
     custom.rel = 'stylesheet';
-    custom.href = globalThis.basePath + 'static/custom.css';
+    custom.href = window.basePath + 'static/custom.css';
     document.head.appendChild(custom);
 
     const favicon = document.createElement('link');
     favicon.rel = 'icon';
-    favicon.href = globalThis.basePath + 'static/identus.svg';
+    favicon.href = window.basePath + 'static/identus.svg';
     favicon.type = 'image/svg+xml';
     document.head.appendChild(favicon);
-
-    const scripts = [
-      'static/js/config/app-config.js',
-      'static/js/utils/display-helpers.js',
-      'static/js/utils/dom-utils.js',
-      'static/js/components/breadcrumb-manager.js',
-      'static/js/components/release-card-manager.js',
-      'static/js/components/navbar-controller.js',
-      'static/js/routing/route-matcher.js',
-      'static/js/routing/spa-router.js',
-      'static/js/routing/navigation-handler.js',
-      'static/js/communication/iframe-messenger.js',
-      'static/main.js'
-    ];
-
-    document.getElementById('navbar-logo').src = globalThis.basePath + 'static/identus.svg';
-
-    scripts.forEach(src => {
-      const script = document.createElement('script');
-      script.src = globalThis.basePath + src;
-      document.body.appendChild(script);
-    });
   </script>
+  
   <title>Identus Integration</title>
   <style>
     html,
@@ -149,6 +128,43 @@
   </nav>
   <div id="breadcrumbs" class="is-hidden"></div>
   <iframe id="content-iframe" src=""></iframe>
+  <script>
+    function loadScript(src) {
+      return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = window.basePath + src;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.body.appendChild(script);
+      });
+    }
+
+    async function loadScripts() {
+      const scripts = [
+        'static/js/config/app-config.js',
+        'static/js/utils/display-helpers.js',
+        'static/js/utils/dom-utils.js',
+        'static/js/components/breadcrumb-manager.js',
+        'static/js/components/release-card-manager.js',
+        'static/js/components/navbar-controller.js',
+        'static/js/routing/route-matcher.js',
+        'static/js/routing/spa-router.js',
+        'static/js/routing/navigation-handler.js',
+        'static/js/communication/iframe-messenger.js',
+        'static/main.js'
+      ];
+
+      for (const src of scripts) {
+        await loadScript(src);
+      }
+    }
+
+    document.body.style = "";
+
+    document.getElementById('navbar-logo').src = window.basePath + 'static/identus.svg';
+
+    loadScripts();
+  </script>
 </body>
 
 </html>

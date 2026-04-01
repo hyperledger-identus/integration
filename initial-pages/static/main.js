@@ -1,5 +1,5 @@
 // Main application bootstrap - orchestrates all modules
-document.addEventListener('DOMContentLoaded', () => {
+(function() {
   console.log('🚀 Initializing SPA Application...');
 
   // Initialize application configuration
@@ -97,4 +97,4 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('unhandledrejection', (event) => {
     console.error('🚨 Unhandled promise rejection:', event.reason);
   });
-});
+})();
