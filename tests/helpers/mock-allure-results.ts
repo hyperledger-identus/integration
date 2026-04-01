@@ -164,7 +164,8 @@ export async function createMockAllureResultsDir(
   mkdirSync(runnerDir, { recursive: true });
   
   results.forEach((result, index) => {
-    const fileName = `result-${index}-${result.uuid}.json`;
+    // Must end with `-result.json` — matches Allure layout and report.preProcessAllure filter
+    const fileName = `${index}-${result.uuid}-result.json`;
     const filePath = join(runnerDir, fileName);
     writeFileSync(filePath, JSON.stringify(result, null, 2), 'utf-8');
   });

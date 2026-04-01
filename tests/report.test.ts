@@ -3,8 +3,9 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { readFileSync, existsSync, readdirSync } from 'fs';
-import { join } from 'path';
+import { readFileSync, existsSync, readdirSync, cpSync } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'node:url';
 import {
   generateMockAllureResult,
   generateMockRunnerResults,
@@ -12,20 +13,49 @@ import {
   generateMockEnvironment
 } from './helpers/mock-allure-results.js';
 import { createTempDir, cleanupTempDir } from './helpers/test-utils.js';
-import type { environment, ReleaseManifestEntry, MockTestResult } from './helpers/mock-allure-results.js';
+import { createReportRunCmdHandler } from './helpers/report-run-cmd-mock.js';
+import type { environment, ReleaseManifestEntry } from '../src/shared/types.js';
+import type { MockTestResult } from './helpers/mock-allure-results.js';
+import { report } from '../src/runner/report.js';
 
-// Mock the cmd module
-vi.mock('../src/cmd.js', () => ({
-  cmd: vi.fn().mockResolvedValue(undefined)
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+
+/** Must match default in report.ts when EXTERNAL_BASE_URL is unset at module load */
+const REPORT_BASE_URL = 'https://hyperledger-identus.github.io/integration/';
+
+const mockCmd = vi.hoisted(() =>
+  vi.fn(async (_command: string): Promise<string> => '')
+);
+
+vi.mock('../src/shared/cmd.js', () => ({
+  cmd: (command: string) => mockCmd(command)
 }));
 
-// Mock the slack module - we'll track calls to verify it's invoked correctly
-const mockSendSlackMessage = vi.fn().mockResolvedValue(undefined);
-vi.mock('../src/slack.js', () => ({
+// Mock must reference a hoisted fn so the factory is valid under vi.mock hoisting
+const mockSendSlackMessage = vi.hoisted(() =>
+  vi.fn().mockResolvedValue(undefined)
+);
+vi.mock('../src/shared/slack.js', () => ({
   slack: {
     sendSlackErrorMessage: mockSendSlackMessage
   }
 }));
+
+function envForRun(overrides: Partial<environment> = {}): environment {
+  const base = generateMockEnvironment({
+    component: 'sdk-ts',
+    runners: {
+      'sdk-ts': { enabled: true, build: false, version: '1' },
+      'sdk-kmp': { enabled: false, build: false, version: '1' },
+      'sdk-swift': { enabled: false, build: false, version: '1' }
+    }
+  });
+  return {
+    ...base,
+    ...overrides,
+    runners: overrides.runners ?? base.runners
+  } as environment;
+}
 
 describe('Report Generation', () => {
   let tempDir: string;
@@ -37,6 +67,8 @@ describe('Report Generation', () => {
     process.env.GH_TOKEN = 'test-token';
     process.env.SLACK_WEBHOOK = 'https://hooks.slack.com/services/TEST/WEBHOOK';
     mockSendSlackMessage.mockClear();
+    mockCmd.mockReset();
+    mockCmd.mockImplementation(async () => '');
   });
   
   afterEach(() => {
@@ -233,227 +265,98 @@ describe('Report Generation', () => {
     });
   });
 
-  describe('Report Generation Flow - Slack Notifications', () => {
-    it('should NOT call Slack when all tests pass (happy path)', async () => {
-      // This would require actually running the report generation
-      // For now, we test the logic: if executionPassed = true, Slack should not be called
-      const executionPassed = true;
-      const exceptionOccurred = false;
-      
-      if (!executionPassed || exceptionOccurred) {
-        await mockSendSlackMessage('https://example.com/report', generateMockEnvironment());
-      }
-      
+  describe('report.run (integration)', () => {
+    let prevCwd: string;
+
+    beforeEach(async () => {
+      prevCwd = process.cwd();
+      cpSync(join(REPO_ROOT, 'initial-pages'), join(tempDir, 'initial-pages'), { recursive: true });
+      process.chdir(tempDir);
+      mockCmd.mockImplementation(createReportRunCmdHandler(tempDir));
+    });
+
+    afterEach(() => {
+      process.chdir(prevCwd);
+    });
+
+    it('does not notify Slack when processRunners sees only passing tests', async () => {
+      const results = generateMockRunnerResults('sdk-ts', { passed: 3, failed: 0 });
+      await createMockAllureResultsDir(join(tempDir, 'tmp'), 'sdk-ts', results);
+
+      const env = envForRun();
+      process.env.ENV = Buffer.from(JSON.stringify(env)).toString('base64');
+
+      await report.run();
+
       expect(mockSendSlackMessage).not.toHaveBeenCalled();
     });
 
-    it('should call Slack when tests fail', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const env = generateMockEnvironment({
-        component: 'sdk-ts',
-        workflow: { runId: 12345 }
-      }) as environment;
-      
-      // Simulate failed tests
-      const executionPassed = false;
-      const exceptionOccurred = false;
-      const externalReportUrl = 'https://example.com/sdk-ts/1';
-      
-      if (!executionPassed || exceptionOccurred) {
-        await mockSendSlackMessage(externalReportUrl, env);
-      }
-      
+    it('notifies Slack when processRunners aggregates failing Allure results', async () => {
+      const results = generateMockRunnerResults('sdk-ts', { passed: 2, failed: 1 });
+      await createMockAllureResultsDir(join(tempDir, 'tmp'), 'sdk-ts', results);
+
+      const env = envForRun();
+      process.env.ENV = Buffer.from(JSON.stringify(env)).toString('base64');
+
+      await report.run();
+
       expect(mockSendSlackMessage).toHaveBeenCalledTimes(1);
-      expect(mockSendSlackMessage).toHaveBeenCalledWith(externalReportUrl, env);
+      expect(mockSendSlackMessage).toHaveBeenCalledWith(
+        `${REPORT_BASE_URL}sdk-ts/1`,
+        env
+      );
     });
 
-    it('should call Slack when exception occurs during SDK execution', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const env = generateMockEnvironment({
-        component: 'sdk-swift',
-        workflow: { runId: 12345 }
-      }) as environment;
-      
-      // Simulate exception during runner processing (e.g., missing results directory)
-      const executionPassed = false;
-      const exceptionOccurred = true;
-      const externalReportUrl = 'https://example.com/sdk-swift/1';
-      
-      if (!executionPassed || exceptionOccurred) {
-        await mockSendSlackMessage(externalReportUrl, env);
-      }
-      
+    it('notifies Slack when Allure generation fails after tests passed', async () => {
+      const results = generateMockRunnerResults('sdk-ts', { passed: 2, failed: 0 });
+      await createMockAllureResultsDir(join(tempDir, 'tmp'), 'sdk-ts', results);
+
+      const env = envForRun();
+      process.env.ENV = Buffer.from(JSON.stringify(env)).toString('base64');
+
+      mockCmd.mockImplementation(createReportRunCmdHandler(tempDir, { failAllure: true }));
+
+      await report.run();
+
       expect(mockSendSlackMessage).toHaveBeenCalledTimes(1);
-      expect(mockSendSlackMessage).toHaveBeenCalledWith(externalReportUrl, env);
+      expect(mockSendSlackMessage).toHaveBeenCalledWith(
+        `${REPORT_BASE_URL}sdk-ts/1`,
+        env
+      );
     });
 
-    it('should call Slack when exception occurs during report generation', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const env = generateMockEnvironment({
-        component: 'cloud-agent',
-        workflow: { runId: 12345 }
-      }) as environment;
-      
-      // Simulate exception during report generation (e.g., Allure generation fails)
-      const executionPassed = true; // Tests passed, but report generation failed
-      const exceptionOccurred = true;
-      const externalReportUrl = 'https://example.com/cloud-agent/1';
-      
-      if (!executionPassed || exceptionOccurred) {
-        await mockSendSlackMessage(externalReportUrl, env);
-      }
-      
-      expect(mockSendSlackMessage).toHaveBeenCalledTimes(1);
-      expect(mockSendSlackMessage).toHaveBeenCalledWith(externalReportUrl, env);
+    it('rejects when Slack fails after a failed pipeline', async () => {
+      const results = generateMockRunnerResults('sdk-ts', { passed: 1, failed: 1 });
+      await createMockAllureResultsDir(join(tempDir, 'tmp'), 'sdk-ts', results);
+
+      const env = envForRun();
+      process.env.ENV = Buffer.from(JSON.stringify(env)).toString('base64');
+
+      mockSendSlackMessage.mockRejectedValueOnce(new Error('webhook failed'));
+
+      await expect(report.run()).rejects.toThrow(/Failed to send notification/);
     });
 
-    it('should call Slack for release component when tests fail', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const env = generateMockEnvironment({
-        component: 'release',
-        releaseVersion: '1.0.0',
-        workflow: { runId: 12345 }
-      }) as environment;
-      
-      const executionPassed = false;
-      const exceptionOccurred = false;
-      const externalReportUrl = 'https://example.com/release/1.0.0';
-      
-      if (!executionPassed || exceptionOccurred) {
-        await mockSendSlackMessage(externalReportUrl, env);
-      }
-      
-      expect(mockSendSlackMessage).toHaveBeenCalledTimes(1);
-      expect(mockSendSlackMessage).toHaveBeenCalledWith(externalReportUrl, env);
-    });
+    it('uses the ENV component in the Slack URL when the pipeline fails', async () => {
+      const results = generateMockRunnerResults('sdk-ts', { passed: 1, failed: 1 });
+      await createMockAllureResultsDir(join(tempDir, 'tmp'), 'sdk-ts', results);
 
-    it('should call Slack for release component when exception occurs', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const env = generateMockEnvironment({
-        component: 'release',
-        releaseVersion: '1.0.0-draft',
-        workflow: { runId: 12345 }
-      }) as environment;
-      
-      const executionPassed = true;
-      const exceptionOccurred = true;
-      const externalReportUrl = 'https://example.com/release/1.0.0-draft';
-      
-      if (!executionPassed || exceptionOccurred) {
-        await mockSendSlackMessage(externalReportUrl, env);
-      }
-      
-      expect(mockSendSlackMessage).toHaveBeenCalledTimes(1);
-      expect(mockSendSlackMessage).toHaveBeenCalledWith(externalReportUrl, env);
-    });
-
-    it('should handle multiple runner failures correctly', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const env = generateMockEnvironment({
-        component: 'release',
-        releaseVersion: '1.0.0',
-        workflow: { runId: 12345 }
-      }) as environment;
-      
-      // Simulate: sdk-ts passed, sdk-swift failed, sdk-kmp failed
-      // executionPassed should be false if ANY runner fails
-      const executionPassed = false; // false && true && false = false
-      const exceptionOccurred = false;
-      const externalReportUrl = 'https://example.com/release/1.0.0';
-      
-      if (!executionPassed || exceptionOccurred) {
-        await mockSendSlackMessage(externalReportUrl, env);
-      }
-      
-      expect(mockSendSlackMessage).toHaveBeenCalledTimes(1);
-    });
-
-    it('should identify test failures from statistics correctly', () => {
-      // Test that broken tests are treated as failures
-      const stats1 = {
-        passed: 10,
-        failed: 0,
-        broken: 1, // Broken should cause executionPassed = false
-        skipped: 0,
-        total: 11
-      };
-      
-      const executionPassed1 = stats1.failed === 0 && stats1.broken === 0;
-      expect(executionPassed1).toBe(false);
-      
-      // Test that only passed tests result in success
-      const stats2 = {
-        passed: 50,
-        failed: 0,
-        broken: 0,
-        skipped: 5,
-        total: 55
-      };
-      
-      const executionPassed2 = stats2.failed === 0 && stats2.broken === 0;
-      expect(executionPassed2).toBe(true);
-    });
-  });
-
-  describe('Weekly Component - Missing SDK Results', () => {
-    it('should call Slack when one SDK fails without Allure results in weekly component', async () => {
-      // Setup: weekly component with all 3 SDKs enabled
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const env = generateMockEnvironment({
+      const env = envForRun({
         component: 'weekly',
-        workflow: { runId: 12345 },
         runners: {
           'sdk-ts': { enabled: true, build: true, version: 'main' },
-          'sdk-swift': { enabled: true, build: true, version: 'main' },
-          'sdk-kmp': { enabled: true, build: true, version: 'main' }
+          'sdk-kmp': { enabled: false, build: false, version: '1' },
+          'sdk-swift': { enabled: false, build: false, version: '1' }
         }
-      }) as environment;
+      });
+      process.env.ENV = Buffer.from(JSON.stringify(env)).toString('base64');
 
-      // Scenario: 
-      // - sdk-ts has results and passes
-      // - sdk-swift has results and passes  
-      // - sdk-kmp directory doesn't exist (missing Allure results)
-      // 
-      // When processRunners tries to process sdk-kmp:
-      // - preProcessAllure calls readdirSync('tmp/sdk-kmp')
-      // - readdirSync throws ENOENT error (directory doesn't exist)
-      // - Error is caught in processRunners catch block
-      // - Runner result: { runner: 'sdk-kmp', passed: false, stats: all zeros, error: ... }
-      // - executionPassed = true && true && false = false
-      // - This triggers Slack notification
+      await report.run();
 
-      // Simulate the processRunners result when one SDK fails due to missing directory
-      const executionPassed = false; // sdk-kmp failed due to missing directory
-      const exceptionOccurred = false; // Exception was caught and handled gracefully
-      const externalReportUrl = 'https://example.com/weekly/1';
-
-      // This simulates what happens in sendSlackNotificationIfNeeded
-      // When executionPassed is false, Slack should be called
-      if (!executionPassed || exceptionOccurred) {
-        await mockSendSlackMessage(externalReportUrl, env);
-      }
-
-      // Verify Slack was called
-      expect(mockSendSlackMessage).toHaveBeenCalledTimes(1);
-      expect(mockSendSlackMessage).toHaveBeenCalledWith(externalReportUrl, env);
-
-      // Verify the environment has all 3 SDKs enabled
-      const callArgs = mockSendSlackMessage.mock.calls[0];
-      if (callArgs && callArgs[1]) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const calledEnv = callArgs[1] as environment;
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        expect(calledEnv.component).toBe('weekly');
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        expect(calledEnv.runners['sdk-ts'].enabled).toBe(true);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        expect(calledEnv.runners['sdk-swift'].enabled).toBe(true);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        expect(calledEnv.runners['sdk-kmp'].enabled).toBe(true);
-      }
-      
-      // Verify the report URL is correct for weekly component
-      expect(callArgs[0]).toBe(externalReportUrl);
+      expect(mockSendSlackMessage).toHaveBeenCalledWith(
+        `${REPORT_BASE_URL}weekly/1`,
+        env
+      );
     });
   });
 
