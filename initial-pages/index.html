@@ -5,31 +5,25 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script>
-    // Set base path before loading other resources (same logic as main.js)
     window.basePath = window.location.host.includes('localhost') ? "/" : "/integration/";
-    document.write('<link rel="stylesheet" href="' + window.basePath + 'static/bulma.css">');
-    document.write('<link rel="stylesheet" href="' + window.basePath + 'static/custom.css">');
-    document.write('<link rel="icon" href="' + window.basePath + 'static/identus.svg" type="image/svg+xml">');
-    
-    // Load modular JavaScript files in dependency order
-    const scripts = [
-      'static/js/config/app-config.js',
-      'static/js/utils/display-helpers.js',
-      'static/js/utils/dom-utils.js',
-      'static/js/components/breadcrumb-manager.js',
-      'static/js/components/release-card-manager.js',
-      'static/js/components/navbar-controller.js',
-      'static/js/routing/route-matcher.js',
-      'static/js/routing/spa-router.js',
-      'static/js/routing/navigation-handler.js',
-      'static/js/communication/iframe-messenger.js',
-      'static/main.js'
-    ];
-    
-    scripts.forEach(script => {
-      document.write('<script src="' + window.basePath + script + '"><\/script>');
-    });
+
+    const bulma = document.createElement('link');
+    bulma.rel = 'stylesheet';
+    bulma.href = window.basePath + 'static/bulma.css';
+    document.head.appendChild(bulma);
+
+    const custom = document.createElement('link');
+    custom.rel = 'stylesheet';
+    custom.href = window.basePath + 'static/custom.css';
+    document.head.appendChild(custom);
+
+    const favicon = document.createElement('link');
+    favicon.rel = 'icon';
+    favicon.href = window.basePath + 'static/identus.svg';
+    favicon.type = 'image/svg+xml';
+    document.head.appendChild(favicon);
   </script>
+  
   <title>Identus Integration</title>
   <style>
     html,
@@ -97,7 +91,7 @@
   <nav class="navbar is-transparent is-fixed-top" role="navigation" aria-label="main navigation">
     <div class="navbar-brand">
       <a href="/" class="navbar-item">
-        <script>document.write('<img src="' + window.basePath + 'static/identus.svg" alt="Identus">');</script>
+        <img id="navbar-logo" alt="Identus">
       </a>
 
       <div role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbar">
@@ -134,6 +128,43 @@
   </nav>
   <div id="breadcrumbs" class="is-hidden"></div>
   <iframe id="content-iframe" src=""></iframe>
+  <script>
+    function loadScript(src) {
+      return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = window.basePath + src;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.body.appendChild(script);
+      });
+    }
+
+    async function loadScripts() {
+      const scripts = [
+        'static/js/config/app-config.js',
+        'static/js/utils/display-helpers.js',
+        'static/js/utils/dom-utils.js',
+        'static/js/components/breadcrumb-manager.js',
+        'static/js/components/release-card-manager.js',
+        'static/js/components/navbar-controller.js',
+        'static/js/routing/route-matcher.js',
+        'static/js/routing/spa-router.js',
+        'static/js/routing/navigation-handler.js',
+        'static/js/communication/iframe-messenger.js',
+        'static/main.js'
+      ];
+
+      for (const src of scripts) {
+        await loadScript(src);
+      }
+    }
+
+    document.body.style = "";
+
+    document.getElementById('navbar-logo').src = window.basePath + 'static/identus.svg';
+
+    loadScripts();
+  </script>
 </body>
 
 </html>
