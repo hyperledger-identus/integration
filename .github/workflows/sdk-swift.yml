@@ -5,6 +5,9 @@ on:
     inputs:
       env:
         type: string
+    secrets:
+      SLACK_WEBHOOK:
+        required: true
 
 permissions: {}
 

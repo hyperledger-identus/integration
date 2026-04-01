@@ -15,6 +15,15 @@ on:
         type: boolean
       sdk-swift:
         type: boolean
+    secrets:
+      IDENTUS_CI:
+        required: true
+      SLACK_WEBHOOK:
+        required: true
+      HYP_BOT_GPG_PRIVATE:
+        required: true
+      HYP_BOT_GPG_PASSWORD:
+        required: true
 
 permissions: {}
 
