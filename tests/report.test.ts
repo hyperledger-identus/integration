@@ -3,8 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { readFileSync, existsSync, readdirSync, cpSync, mkdirSync, writeFileSync } from 'fs';
-import { execSync } from 'node:child_process';
+import { readFileSync, existsSync, readdirSync, cpSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -14,6 +13,7 @@ import {
   generateMockEnvironment
 } from './helpers/mock-allure-results.js';
 import { createTempDir, cleanupTempDir } from './helpers/test-utils.js';
+import { createReportRunCmdHandler } from './helpers/report-run-cmd-mock.js';
 import type { environment, ReleaseManifestEntry } from '../src/shared/types.js';
 import type { MockTestResult } from './helpers/mock-allure-results.js';
 import { report } from '../src/runner/report.js';
@@ -40,33 +40,6 @@ vi.mock('../src/shared/slack.js', () => ({
     sendSlackErrorMessage: mockSendSlackMessage
   }
 }));
-
-/**
- * Shell-backed handler for report.run: runs real mkdir/cp/rm in `tempRoot`, stubs Allure output.
- */
-function createReportRunCmdHandler(
-  tempRoot: string,
-  options?: { failAllure?: boolean }
-): (command: string) => Promise<string> {
-  return async (command: string): Promise<string> => {
-    if (command.includes('npx allure generate')) {
-      if (options?.failAllure) {
-        throw new Error('allure generate failed');
-      }
-      const m = command.match(/-o\s+(\S+)/);
-      if (!m) {
-        throw new Error(`unexpected allure command: ${command}`);
-      }
-      const outDir = m[1];
-      mkdirSync(outDir, { recursive: true });
-      mkdirSync(join(outDir, 'history'), { recursive: true });
-      writeFileSync(join(outDir, 'app.js'), '', 'utf-8');
-      return '';
-    }
-    execSync(command, { cwd: tempRoot, stdio: 'ignore' });
-    return '';
-  };
-}
 
 describe('Report Generation', () => {
   let tempDir: string;
