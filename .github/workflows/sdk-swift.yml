@@ -6,8 +6,7 @@ on:
       env:
         type: string
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   integration:

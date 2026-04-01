@@ -6,13 +6,15 @@ on:
       env:
         type: string
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   integration:
     name: "sdk-ts"
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
     env:
       ENV: ${{ inputs.ENV }} # base64
       RUNNER: "sdk-ts"
