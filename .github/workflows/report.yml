@@ -24,8 +24,6 @@ jobs:
     name: "Generate report for ${{ inputs.component }}"
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    permissions:
-      contents: read
     env:
       COMPONENT: ${{ inputs.component }}
       ENV: ${{ inputs.env }} # Base64-encoded environment config
