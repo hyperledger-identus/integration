@@ -9,12 +9,14 @@
 name: 'Dependency Review'
 on: [pull_request]
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   dependency-review:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@fa2e9d605c4eeb9fcad4c99c224cee0c6c7f3594 # v2.16.0

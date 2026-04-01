@@ -5,13 +5,14 @@ on:
   schedule:
     - cron: 0 21 * * 6
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   weekly:
     name: "Trigger 'weekly' integration"
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Harden the runner (Audit all outbound calls)

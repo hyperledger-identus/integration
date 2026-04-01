@@ -12,8 +12,7 @@ on:
     types:
       - 'integration'
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   # Main job: Generate environment configuration
@@ -21,6 +20,8 @@ jobs:
   main:
     name: "Trigger '${{ github.event.client_payload.component }}' integration"
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     outputs:
       env: ${{ steps.components.outputs.env }} # base64 encoded environment configuration
@@ -68,7 +69,8 @@ jobs:
   sdk-ts:
     needs: [main]
     if: needs.main.outputs.sdk-ts  == 'true'
-    secrets: inherit
+    secrets:
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
     uses: ./.github/workflows/sdk-ts.yml
     with:
       ENV: ${{ needs.main.outputs.env }}
@@ -78,7 +80,8 @@ jobs:
   sdk-kmp:
     needs: [main]
     if: false # needs.main.outputs.sdk-kmp  == 'true' (disabled)
-    secrets: inherit
+    secrets:
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
     uses: ./.github/workflows/sdk-kmp.yml
     with:
       ENV: ${{ needs.main.outputs.env }}
@@ -86,7 +89,8 @@ jobs:
   sdk-swift:
     needs: [main]
     if: needs.main.outputs.sdk-swift  == 'true'
-    secrets: inherit
+    secrets:
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
     uses: ./.github/workflows/sdk-swift.yml
     with:
       ENV: ${{ needs.main.outputs.env }}
@@ -96,7 +100,11 @@ jobs:
   generate-reports:
     needs: [main, sdk-ts, sdk-kmp, sdk-swift]
     if: always() # Run even if SDK tests fail
-    secrets: inherit
+    secrets:
+      IDENTUS_CI: ${{ secrets.IDENTUS_CI }}
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+      HYP_BOT_GPG_PRIVATE: ${{ secrets.HYP_BOT_GPG_PRIVATE }}
+      HYP_BOT_GPG_PASSWORD: ${{ secrets.HYP_BOT_GPG_PASSWORD }}
     uses: ./.github/workflows/report.yml
     with:
       env: ${{ needs.main.outputs.env }}

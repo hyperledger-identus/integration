@@ -16,13 +16,14 @@ on:
       sdk-swift:
         type: boolean
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   report:
     name: "Generate report for ${{ inputs.component }}"
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     timeout-minutes: 30
     env:
       COMPONENT: ${{ inputs.component }}

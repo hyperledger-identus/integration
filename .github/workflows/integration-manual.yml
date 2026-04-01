@@ -43,13 +43,15 @@ concurrency:
   group: 'integration-lock'
   cancel-in-progress: false
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   main:
     name: "Trigger 'manual' integration"
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
     outputs:
       env: ${{ steps.components.outputs.env }}
       sdk-ts: ${{ steps.components.outputs.sdk-ts }}
@@ -98,7 +100,8 @@ jobs:
   sdk-ts:
     needs: [main]
     if: needs.main.outputs.sdk-ts  == 'true'
-    secrets: inherit
+    secrets:
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
     uses: ./.github/workflows/sdk-ts.yml
     with:
       ENV: ${{ needs.main.outputs.env }}
@@ -106,7 +109,8 @@ jobs:
   sdk-kmp:
     needs: [main]
     if: false # needs.main.outputs.sdk-kmp  == 'true'
-    secrets: inherit
+    secrets:
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
     uses: ./.github/workflows/sdk-kmp.yml
     with:
       ENV: ${{ needs.main.outputs.env }}
@@ -114,7 +118,8 @@ jobs:
   sdk-swift:
     needs: [main]
     if: needs.main.outputs.sdk-swift  == 'true'
-    secrets: inherit
+    secrets:
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
     uses: ./.github/workflows/sdk-swift.yml
     with:
       ENV: ${{ needs.main.outputs.env }}
@@ -122,7 +127,11 @@ jobs:
   generate-reports:
     needs: [main, sdk-ts, sdk-kmp, sdk-swift]
     if: always()
-    secrets: inherit
+    secrets:
+      IDENTUS_CI: ${{ secrets.IDENTUS_CI }}
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+      HYP_BOT_GPG_PRIVATE: ${{ secrets.HYP_BOT_GPG_PRIVATE }}
+      HYP_BOT_GPG_PASSWORD: ${{ secrets.HYP_BOT_GPG_PASSWORD }}
     uses: ./.github/workflows/report.yml
     with:
       env: ${{ needs.main.outputs.env }}
