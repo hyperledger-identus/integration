@@ -1,19 +1,42 @@
-# Release Integration Workflow
-#
-# Manually triggered workflow for testing release versions
-# Similar to integration.yml but specifically for release components
-# Handles both draft and final releases
-#
-# Usage: Actions → Release Integration → Run workflow → Enter version
-
-name: Release Integration
+name: Manual Integration Tests
 
 on:
   workflow_dispatch:
-    inputs:
-      release_version:
-        description: 'Release version (e.g., 1.0.0 or 1.0.0-draft)'
+    inputs:      
+      cloud_agent_version:
+        description: 'Cloud agent version (e.g., 2.0.0)'
         required: true
+        default: ''
+        type: string
+
+      mediator_version:
+        description: 'Mediator version (e.g., 1.2.0)'
+        required: true
+        default: ''
+        type: string
+
+      prism_node_version:
+        description: 'Prism-node version (e.g., 2.6.0)'
+        required: true
+        default: ''
+        type: string
+
+      sdk_ts_version:
+        description: 'TypeScript SDK version (e.g., 7.0.0)'
+        required: false
+        default: ''
+        type: string
+      
+      sdk_swift_version:
+        description: 'Swift SDK version (e.g., 7.2.0)'
+        required: false
+        default: ''
+        type: string
+      
+      sdk_kmp_version:
+        description: 'Kotlin Multiplatform SDK version (e.g., 4.0.0)'
+        required: false
+        default: ''
         type: string
 
 concurrency:
@@ -25,13 +48,10 @@ permissions:
 
 jobs:
   main:
-    name: "Trigger 'release' integration"
+    name: "Trigger 'manual' integration"
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
     outputs:
-      env: ${{ steps.components.outputs.env }} # base64 encoded
+      env: ${{ steps.components.outputs.env }}
       sdk-ts: ${{ steps.components.outputs.sdk-ts }}
       sdk-kmp: ${{ steps.components.outputs.sdk-kmp }}
       sdk-swift: ${{ steps.components.outputs.sdk-swift }}
@@ -51,16 +71,23 @@ jobs:
         with:
           node-version: 20
 
-      - name: Define release environment
+      - name: Define runners
         id: components
         env:
           GH_TOKEN: ${{ secrets.IDENTUS_CI }}
-          COMPONENT: release
-          VERSION: ${{ github.event.inputs.release_version }}
           RUN_ID: ${{ github.run_id }}
+          CLOUD_AGENT_VERSION:  ${{ github.event.inputs.cloud_agent_version }}
+          MEDIATOR_VERSION:  ${{ github.event.inputs.mediator_version }}
+          PRISM_NODE_VERSION: ${{ github.event.inputs.prism_node_version }}
+          SDK_TS_VERSION:  ${{ github.event.inputs.sdk_ts_version }}
+          SDK_KMP_VERSION:  ${{ github.event.inputs.sdk_kmp_version }}
+          SDK_SWIFT_VERSION:  ${{ github.event.inputs.sdk_swift_version }}
+          CLOUD_SERVICE_TOKEN: ${{ secrets.CLOUD_SERVICE_TOKEN }}
+          CLOUD_SERVICE_URL: ${{ secrets.CLOUD_SERVICE_URL }}
+          CLOUD_SERVICE_TEMPLATE_ID: ${{ secrets.CLOUD_SERVICE_TEMPLATE_ID }}
         run: |
           npm ci
-          npm run environment
+          npm run environment:manual
           ENV="$(cat env)"
           echo "env=$ENV" >> "$GITHUB_OUTPUT"
           echo "sdk-ts=$(echo $ENV | base64 --decode | jq -r '.runners.["sdk-ts"].enabled')" >> "$GITHUB_OUTPUT"
@@ -68,39 +95,8 @@ jobs:
           echo "sdk-swift=$(echo $ENV | base64 --decode | jq -r '.runners.["sdk-swift"].enabled')" >> "$GITHUB_OUTPUT"
           echo $ENV | base64 --decode
 
-  cloud-setup:
-    needs: main
-    name: Cloud setup
-    runs-on: ubuntu-latest
-    env:
-      ENV: ${{ needs.main.outputs.env }}
-      CLOUD_SERVICE_TOKEN: ${{ secrets.CLOUD_SERVICE_TOKEN }}
-      CLOUD_SERVICE_URL: ${{ secrets.CLOUD_SERVICE_URL }}
-      CLOUD_SERVICE_TEMPLATE_ID: ${{ secrets.CLOUD_SERVICE_TEMPLATE_ID }}
-
-    steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@fa2e9d605c4eeb9fcad4c99c224cee0c6c7f3594 # v2.16.0
-        with:
-          egress-policy: audit
-
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 1
-
-      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
-        with:
-          node-version: 20
-
-      - name: Setup environment
-        run: |
-          npm ci
-          npm run cloud:check
-          npm run cloud:setup
-
   sdk-ts:
-    needs: [main, cloud-setup]
+    needs: [main]
     if: needs.main.outputs.sdk-ts  == 'true'
     secrets: inherit
     uses: ./.github/workflows/sdk-ts.yml
@@ -108,7 +104,7 @@ jobs:
       ENV: ${{ needs.main.outputs.env }}
 
   sdk-kmp:
-    needs: [main, cloud-setup]
+    needs: [main]
     if: false # needs.main.outputs.sdk-kmp  == 'true'
     secrets: inherit
     uses: ./.github/workflows/sdk-kmp.yml
@@ -116,7 +112,7 @@ jobs:
       ENV: ${{ needs.main.outputs.env }}
 
   sdk-swift:
-    needs: [main, cloud-setup]
+    needs: [main]
     if: needs.main.outputs.sdk-swift  == 'true'
     secrets: inherit
     uses: ./.github/workflows/sdk-swift.yml
@@ -128,15 +124,10 @@ jobs:
     if: always()
     secrets: inherit
     uses: ./.github/workflows/report.yml
-    permissions:
-      pages: write
-      id-token: write
-      contents: write
-      actions: read
     with:
       env: ${{ needs.main.outputs.env }}
       run-id: ${{ github.run_id }}
-      component: release
+      component: manual
       sdk-ts: ${{ needs.sdk-ts.result != 'skipped' }}
       sdk-kmp: ${{ needs.sdk-kmp.result != 'skipped' }}
       sdk-swift: ${{ needs.sdk-swift.result != 'skipped' }}

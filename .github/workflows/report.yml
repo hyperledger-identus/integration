@@ -16,13 +16,14 @@ on:
       sdk-swift:
         type: boolean
 
+permissions:
+  contents: read
+
 jobs:
   report:
     name: "Generate report for ${{ inputs.component }}"
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    permissions:
-      contents: read
     env:
       COMPONENT: ${{ inputs.component }}
       ENV: ${{ inputs.env }} # Base64-encoded environment config
@@ -116,3 +117,5 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
+        with:
+          token: ${{ secrets.IDENTUS_CI }}

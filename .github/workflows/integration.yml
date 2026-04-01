@@ -21,8 +21,6 @@ jobs:
   main:
     name: "Trigger '${{ github.event.client_payload.component }}' integration"
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
 
     outputs:
       env: ${{ steps.components.outputs.env }} # base64 encoded environment configuration
@@ -100,11 +98,6 @@ jobs:
     if: always() # Run even if SDK tests fail
     secrets: inherit
     uses: ./.github/workflows/report.yml
-    permissions:
-      pages: write
-      id-token: write
-      contents: write
-      actions: read
     with:
       env: ${{ needs.main.outputs.env }}
       run-id: ${{ github.run_id }}
