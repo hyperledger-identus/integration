@@ -43,7 +43,8 @@ concurrency:
   group: 'integration-lock'
   cancel-in-progress: false
 
-permissions: {}
+permissions:
+  contents: read
 
 jobs:
   main:

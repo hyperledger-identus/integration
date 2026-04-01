@@ -12,7 +12,8 @@ on:
     types:
       - 'integration'
 
-permissions: {}
+permissions:
+  contents: read
 
 jobs:
   # Main job: Generate environment configuration
