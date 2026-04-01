@@ -568,7 +568,7 @@ async function handleReleaseReport(env: environment): Promise<void> {
         const tmpResultsDir: string = TMP_RESULTS_DIR
         const componentReportDir: string = `${PUBLIC_REPORTS_DIR}/release`
     const releaseVersion = env.releaseVersion!
-    let executionPassed = true
+    let executionPassed
     let exceptionOccurred = false
     
     try {
@@ -613,7 +613,7 @@ async function handleReleaseReport(env: environment): Promise<void> {
  * Processes test results, generates Allure reports, and sends Slack notifications on failure
  */
 async function run(): Promise<void> {
-    let executionPassed = true
+    let executionPassed
     let exceptionOccurred = false
     let env: environment
     let nextReportId: number | undefined
