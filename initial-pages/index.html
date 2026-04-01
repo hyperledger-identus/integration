@@ -9,17 +9,17 @@
 
     const bulma = document.createElement('link');
     bulma.rel = 'stylesheet';
-    bulma.href = window.basePath + 'static/bulma.css';
+    bulma.href = globalThis.basePath + 'static/bulma.css';
     document.head.appendChild(bulma);
 
     const custom = document.createElement('link');
     custom.rel = 'stylesheet';
-    custom.href = window.basePath + 'static/custom.css';
+    custom.href = globalThis.basePath + 'static/custom.css';
     document.head.appendChild(custom);
 
     const favicon = document.createElement('link');
     favicon.rel = 'icon';
-    favicon.href = window.basePath + 'static/identus.svg';
+    favicon.href = globalThis.basePath + 'static/identus.svg';
     favicon.type = 'image/svg+xml';
     document.head.appendChild(favicon);
 
@@ -37,11 +37,11 @@
       'static/main.js'
     ];
 
-    document.getElementById('navbar-logo').src = window.basePath + 'static/identus.svg';
+    document.getElementById('navbar-logo').src = globalThis.basePath + 'static/identus.svg';
 
     scripts.forEach(src => {
       const script = document.createElement('script');
-      script.src = window.basePath + src;
+      script.src = globalThis.basePath + src;
       document.body.appendChild(script);
     });
   </script>
