@@ -135,6 +135,7 @@ jobs:
       HYP_BOT_GPG_PASSWORD: ${{ secrets.HYP_BOT_GPG_PASSWORD }}
     uses: ./.github/workflows/report.yml
     permissions:
+      contents: read
       pages: write
       id-token: write
     with:
