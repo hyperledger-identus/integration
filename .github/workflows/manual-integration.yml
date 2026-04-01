@@ -43,6 +43,9 @@ concurrency:
   group: 'integration-lock'
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   main:
     name: "Trigger 'manual' integration"

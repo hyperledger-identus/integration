@@ -16,6 +16,9 @@ on:
       sdk-swift:
         type: boolean
 
+permissions:
+  contents: read
+
 jobs:
   report:
     name: "Generate report for ${{ inputs.component }}"
