@@ -4,8 +4,10 @@
  */
 
 import { execSync } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'fs';
-import { join } from 'path';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+const ALLURE_OUTPUT_FLAG = /-o\s+(\S+)/;
 
 export function createReportRunCmdHandler(
   tempRoot: string,
@@ -16,11 +18,11 @@ export function createReportRunCmdHandler(
       if (options?.failAllure) {
         throw new Error('allure generate failed');
       }
-      const m = command.match(/-o\s+(\S+)/);
-      if (!m) {
+      const outDirMatch = ALLURE_OUTPUT_FLAG.exec(command);
+      if (!outDirMatch) {
         throw new Error(`unexpected allure command: ${command}`);
       }
-      const outDir = m[1];
+      const outDir = outDirMatch[1];
       mkdirSync(outDir, { recursive: true });
       mkdirSync(join(outDir, 'history'), { recursive: true });
       writeFileSync(join(outDir, 'app.js'), '', 'utf-8');

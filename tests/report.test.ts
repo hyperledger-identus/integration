@@ -41,6 +41,22 @@ vi.mock('../src/shared/slack.js', () => ({
   }
 }));
 
+function envForRun(overrides: Partial<environment> = {}): environment {
+  const base = generateMockEnvironment({
+    component: 'sdk-ts',
+    runners: {
+      'sdk-ts': { enabled: true, build: false, version: '1' },
+      'sdk-kmp': { enabled: false, build: false, version: '1' },
+      'sdk-swift': { enabled: false, build: false, version: '1' }
+    }
+  });
+  return {
+    ...base,
+    ...overrides,
+    runners: overrides.runners ?? base.runners
+  } as environment;
+}
+
 describe('Report Generation', () => {
   let tempDir: string;
   const originalEnv = process.env;
@@ -250,22 +266,6 @@ describe('Report Generation', () => {
   });
 
   describe('report.run (integration)', () => {
-    function envForRun(overrides: Partial<environment> = {}): environment {
-      const base = generateMockEnvironment({
-        component: 'sdk-ts',
-        runners: {
-          'sdk-ts': { enabled: true, build: false, version: '1' },
-          'sdk-kmp': { enabled: false, build: false, version: '1' },
-          'sdk-swift': { enabled: false, build: false, version: '1' }
-        }
-      });
-      return {
-        ...base,
-        ...overrides,
-        runners: overrides.runners ?? base.runners
-      } as environment;
-    }
-
     let prevCwd: string;
 
     beforeEach(async () => {
