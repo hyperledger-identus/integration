@@ -74,7 +74,7 @@ jobs:
       SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
     uses: ./.github/workflows/sdk-ts.yml
     with:
-      ENV: ${{ needs.main.outputs.env }}
+      env: ${{ needs.main.outputs.env }}
 
   # Note: sdk-kmp is currently disabled due to SDK being broken
   # See src/test-runner/kotlin.ts for details
@@ -85,7 +85,7 @@ jobs:
       SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
     uses: ./.github/workflows/sdk-kmp.yml
     with:
-      ENV: ${{ needs.main.outputs.env }}
+      env: ${{ needs.main.outputs.env }}
 
   sdk-swift:
     needs: [main]
@@ -94,7 +94,7 @@ jobs:
       SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
     uses: ./.github/workflows/sdk-swift.yml
     with:
-      ENV: ${{ needs.main.outputs.env }}
+      env: ${{ needs.main.outputs.env }}
 
   # Report generation: Aggregates test results and generates Allure reports
   # Runs even if some SDK tests fail (if: always()) to ensure reports are generated

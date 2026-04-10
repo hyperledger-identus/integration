@@ -19,7 +19,7 @@ jobs:
       contents: read
 
     env:
-      ENV: ${{ inputs.ENV }} # base64
+      ENV: ${{ inputs.env }} # base64
       RUNNER: "sdk-ts"
       SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
 

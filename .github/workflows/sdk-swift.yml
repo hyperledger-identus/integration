@@ -16,7 +16,7 @@ jobs:
     name: "sdk-swift"
     runs-on: macos-latest
     env:
-      ENV: ${{ inputs.ENV }}
+      ENV: ${{ inputs.env }}
       RUNNER: "sdk-swift"
       SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
 
