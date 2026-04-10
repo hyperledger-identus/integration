@@ -1,6 +1,5 @@
 import { TestRunner } from "./test-runner.js";
 import { cmd } from "../shared/cmd.js";
-import { readFileSync } from "fs";
 import { environment } from "../shared/types.js";
 
 export class TypescriptSdk extends TestRunner {
@@ -8,12 +7,11 @@ export class TypescriptSdk extends TestRunner {
     readonly owner = "hyperledger-identus"
     readonly repo = "sdk-ts"
     readonly artifactName = "@hyperledger/identus-sdk"
-    readonly oldArtifactName = "@hyperledger/identus-edge-agent-sdk"
 
     readonly testDir = `${this.repo}/integration-tests/e2e-tests`
     readonly allureResultsDirectory = `${this.testDir}/allure-results`
 
-    readonly runCommand = `npm run test:sdk`
+    readonly runCommand = `yarn test:sdk`
 
     protected sdkEnv(env: environment) {
         return {
@@ -25,20 +23,14 @@ export class TypescriptSdk extends TestRunner {
     protected async prepare() {
         const sdkOptions = { cwd: this.name }
         const testOptions = { cwd: this.testDir }
-
-        const packageJson = readFileSync(`${this.testDir}/package.json`).toString()
-        const isOldArtifact = packageJson.includes(this.oldArtifactName)
-        const artifactName = isOldArtifact ? this.oldArtifactName : this.artifactName
-
         if (this.build) {
-            await cmd("npm install", sdkOptions)
-            await cmd("npm run build", sdkOptions)
-            await cmd(`npm install ${artifactName}@../..`, testOptions)
+            await cmd("sh externals/run.sh -x update", sdkOptions)
+            await cmd("yarn install", sdkOptions)
+            await cmd("yarn build", sdkOptions)
         } else {
-            await cmd(`npm install ${artifactName}@${this.version}`, testOptions)
+            await cmd(`yarn install ${this.artifactName}@${this.version}`, testOptions)
         }
-        
-        await cmd(`npm install`, testOptions)
+        await cmd(`yarn install`, testOptions)
     }
 
     protected getTagFromVersion(): string {

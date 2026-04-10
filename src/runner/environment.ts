@@ -111,7 +111,7 @@ async function run(): Promise<string> {
         environment['services']['agent']['version'] = await getLatestReleaseTag('cloud-agent')
         environment['services']['mediator']['version'] = await getLatestReleaseTag('mediator')
         environment['runners']['sdk-ts'] = initRunner(true, false, await getLatestReleaseTag('sdk-ts'))
-        environment['runners']['sdk-kmp'] = initRunner(false, false, await getLatestReleaseTag('sdk-kmp'))
+        environment['runners']['sdk-kmp'] = initRunner(true, false, await getLatestReleaseTag('sdk-kmp'))
         environment['runners']['sdk-swift'] = initRunner(true, false, await getLatestReleaseTag('sdk-swift'))
     }
 
@@ -126,10 +126,16 @@ async function run(): Promise<string> {
         environment['services']['node']['version'] = process.env.VERSION!
     } else if (component == 'sdk-ts') {
         environment['runners']['sdk-ts'] = initRunner(true, true, process.env.VERSION!)
+        environment['runners']['sdk-kmp']['enabled'] = false
+        environment['runners']['sdk-swift']['enabled'] = false
     } else if (component == 'sdk-kmp') {
         environment['runners']['sdk-kmp'] = initRunner(true, true, process.env.VERSION!)
+        environment['runners']['sdk-ts']['enabled'] = false
+        environment['runners']['sdk-swift']['enabled'] = false
     } else if (component == 'sdk-swift') {
         environment['runners']['sdk-swift'] = initRunner(true, true, process.env.VERSION!)
+        environment['runners']['sdk-ts']['enabled'] = false
+        environment['runners']['sdk-kmp']['enabled'] = false
     }
 
     // setup cloud
