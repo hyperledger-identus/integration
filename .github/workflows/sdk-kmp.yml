@@ -16,7 +16,7 @@ jobs:
     name: "sdk-kmp"
     runs-on: ubuntu-latest
     env:
-      ENV: ${{ inputs.ENV }} # base64
+      ENV: ${{ inputs.env }} # base64
       RUNNER: "sdk-kmp"
       SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
 

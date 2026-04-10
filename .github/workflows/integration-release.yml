@@ -106,7 +106,7 @@ jobs:
       SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
     uses: ./.github/workflows/sdk-ts.yml
     with:
-      ENV: ${{ needs.main.outputs.env }}
+      env: ${{ needs.main.outputs.env }}
 
   sdk-kmp:
     needs: [main, cloud-setup]
@@ -115,7 +115,7 @@ jobs:
       SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
     uses: ./.github/workflows/sdk-kmp.yml
     with:
-      ENV: ${{ needs.main.outputs.env }}
+      env: ${{ needs.main.outputs.env }}
 
   sdk-swift:
     needs: [main, cloud-setup]
@@ -124,7 +124,7 @@ jobs:
       SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
     uses: ./.github/workflows/sdk-swift.yml
     with:
-      ENV: ${{ needs.main.outputs.env }}
+      env: ${{ needs.main.outputs.env }}
 
   generate-reports:
     needs: [main, sdk-ts, sdk-kmp, sdk-swift]
