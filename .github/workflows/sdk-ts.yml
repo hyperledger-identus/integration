@@ -38,6 +38,8 @@ jobs:
         with:
           node-version: 20
 
+      - run: corepack enable
+
       - name: Install rust
         run: |
           URL="https://raw.githubusercontent.com/rust-lang/rustup/refs/tags/1.28.2/rustup-init.sh"
