@@ -14,7 +14,7 @@ const isCi = process.env.CI ? true : false
 // Define allowed commands for security
 const ALLOWED_COMMANDS = [
     'npm', 'git', 'docker', 'xcodebuild', 'gradle', 'mvn', 'mkdir', 'rm', 'cp', 'ls', 'cat',
-    'curl', 'wget', 'echo', 'date', 'whoami', 'pwd', 'chmod', 'chown', 'npx'
+    'curl', 'wget', 'echo', 'date', 'whoami', 'pwd', 'chmod', 'chown', 'npx', 'yarn', 'sh'
 ]
 
 async function execute(cmd: string, options?: SpawnOptions): Promise<string> {
