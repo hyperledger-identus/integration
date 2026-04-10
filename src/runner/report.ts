@@ -156,7 +156,7 @@ function postProcessAllure(reportPath: string, _env: environment, _currentReport
         /\.attr\("xlink:href",(?:\(function\(t\)\{return t\.reportUrl\}\)|function\(t\)\{return t\.reportUrl\})\)/
     appJs = appJs.replace(
         reportUrlXlinkRe,
-        `.attr("xlink:href",function(t){return window.basePath + t.reportUrl}).on("click",function(e,t){e.preventDefault();var parts=t.reportUrl.match(/\\.\\/reports\\/([^\\/]+)\\/(\\d+)/);if(parts){var component=parts[1],reportId=parts[2],COMPONENT_PATH_MAP={\"sdk-ts\":\"typescript\",\"sdk-swift\":\"swift\",\"sdk-kmp\":\"kotlin\",\"cloud-agent\":\"cloud-agent\",\"mediator\":\"mediator\",\"weekly\":\"weekly\",\"release\":\"release\",\"manual\":\"manual\"};parent.postMessage({type:\"iframeNavigation\",path:window.basePath+COMPONENT_PATH_MAP[component]+\"/\"+reportId},\"*\")}})`
+        `.attr("xlink:href",function(t){return window.basePath + t.reportUrl}).on("click",function(e,t){e.preventDefault();var parts=t.reportUrl.match(/\\.\\/reports\\/([^\\/]+)\\/(\\d+)/);if(parts){var component=parts[1],reportId=parts[2],COMPONENT_PATH_MAP={'sdk-ts':'typescript','sdk-swift':'swift','sdk-kmp':'kotlin','cloud-agent':'cloud-agent','mediator':'mediator','weekly':'weekly','release':'release','manual':'manual'};parent.postMessage({type:'iframeNavigation',path:window.basePath+COMPONENT_PATH_MAP[component]+'/'+reportId},'*')}})`
     )
     
     writeFileSync(`${reportPath}/app.js`, appJs)
