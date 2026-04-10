@@ -28,7 +28,7 @@ export class TypescriptSdk extends TestRunner {
             await cmd("yarn install", sdkOptions)
             await cmd("yarn build", sdkOptions)
         } else {
-            await cmd(`yarn install ${this.artifactName}@${this.version}`, testOptions)
+            await cmd(`yarn install ${this.version}`, testOptions)
         }
         await cmd(`yarn install`, testOptions)
     }
