@@ -34,6 +34,6 @@ export class TypescriptSdk extends TestRunner {
     }
 
     protected getTagFromVersion(): string {
-        return `v${this.version}`
+        return `@hyperledger/identus-sdk@${this.version}`
     }
 }
