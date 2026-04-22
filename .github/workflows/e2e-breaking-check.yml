@@ -1,0 +1,90 @@
+name: E2E Breaking Change Check
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+concurrency:
+  group: 'integration-lock'
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  e2e-breaking-check:
+    name: e2e-breaking-check
+    runs-on: ubuntu-latest
+    # Reordered condition and restricted to main repository for secret access
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: .
+
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40 # v2.19.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install rust
+        run: |
+          URL="https://raw.githubusercontent.com/rust-lang/rustup/refs/tags/1.28.2/rustup-init.sh"
+          EXPECTED_HASH="17247e4bcacf6027ec2e11c79a72c494c9af69ac8d1abcc1b271fa4375a106c2"
+          curl -sSfL "$URL" -o rustup-init.sh
+          echo "$EXPECTED_HASH rustup-init.sh" | sha256sum -c -
+          sh rustup-init.sh -y
+
+      - name: Install wasm-pack
+        env:
+          VERSION: v0.13.1
+        run: |
+          URL="https://raw.githubusercontent.com/drager/wasm-pack/refs/tags/v0.13.1/docs/_installer/init.sh"
+          EXPECTED_HASH="3e91ccfb5ca63dfd6761a3b7acbf6aca04be365e900468888e6615e79528a7cc"
+          curl -sSfL "$URL" -o wasm-pack-init.sh
+          echo "$EXPECTED_HASH wasm-pack-init.sh" | sha256sum -c -
+          sh wasm-pack-init.sh -y
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate integration ENV
+        env:
+          GH_TOKEN: ${{ secrets.IDENTUS_CI }}
+          RUN_ID: ${{ github.run_id }}
+          COMPONENT: sdk-ts
+          CLOUD_SERVICE_TOKEN: ${{ secrets.CLOUD_SERVICE_TOKEN }}
+          CLOUD_SERVICE_URL: ${{ vars.CLOUD_SERVICE_URL || secrets.CLOUD_SERVICE_URL }}
+          CLOUD_SERVICE_TEMPLATE_ID: ${{ vars.CLOUD_SERVICE_TEMPLATE_ID || secrets.CLOUD_SERVICE_TEMPLATE_ID }}
+        run: |
+          npm run environment
+          ENV_VALUE=$(cat env)
+          if [ -z "$ENV_VALUE" ]; then
+            echo "npm run environment did not produce ENV" >&2
+            exit 1
+          fi
+          {
+            echo "ENV<<EOF"
+            echo "$ENV_VALUE"
+            echo "EOF"
+          } >> "$GITHUB_ENV"
+
+      - name: Run E2E Tests
+        env:
+          ENV: ${{ env.ENV }}
+        run: npm run integration -- --runner sdk-ts

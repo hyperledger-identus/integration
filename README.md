@@ -257,6 +257,8 @@ In order to test all latest components there's a weekly job.
 
 When there's an expected breaking change the components will have to be compatible before making a final release. That means the `latest` test should be `green`.
 
+E2E tests are executed in CI to detect potential breaking changes in pull requests.
+
 ## Integration
 
 ### Service integration
