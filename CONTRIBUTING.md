@@ -211,9 +211,18 @@ See `tests/` directory for examples:
    - Include testing instructions if applicable
 
 3. **Code Review**
-   - Address review comments promptly
-   - Keep PRs focused and reasonably sized
-   - Respond to feedback constructively
+   - **Review Frequency**
+     - Address review comments promptly
+     - Keep PRs focused and reasonably sized
+     - Respond to feedback constructively
+
+### Branch Security
+
+To maintain SDLC stability, all pull requests must adhere to the standardized [Branch Protection Rules](docs/branch-protection.md). Key requirements include:
+- Mandatory peer review (2 approvals).
+- Passing all required status checks (CI, Lint, Unit Tests).
+- Prefer rebase or squash merges where practical to keep history easier to follow.
+- Resolution of all review comments.
 
 ### Commit Messages
 
