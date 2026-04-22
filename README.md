@@ -75,6 +75,12 @@ npm run test:watch
 npm run test:coverage
 ```
 
+### Security Scanning with Snyk
+
+- CI runs a Snyk scan on pushes and pull requests to help identify known vulnerabilities.
+- Authenticated Snyk scans require a `SNYK_TOKEN` to be configured in the repository secrets.
+- On pull requests from forks, GitHub Actions does not provide repository secrets by default, so Snyk scans may be skipped or run in a limited way unless an alternative authentication approach is configured.
+
 ## Development
 
 ### Local Development Setup
