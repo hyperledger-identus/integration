@@ -4,7 +4,7 @@
  */
 
 import { execSync } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, rmSync, cpSync } from 'node:fs';
 import { join } from 'node:path';
 
 const ALLURE_OUTPUT_FLAG = /-o\s+(\S+)/;
@@ -36,14 +36,22 @@ export function createReportRunCmdHandler(
         return '';
       }
       if (cmdName === 'rm') {
-        // Simple rm mock
+        const pathArg = args.find(a => !a.startsWith('-'));
+        if (pathArg) rmSync(join(tempRoot, pathArg), { recursive: true, force: true });
         return '';
       }
       if (cmdName === 'cp') {
-        // Simple cp mock
+        const pathArgs = args.filter(a => !a.startsWith('-'));
+        if (pathArgs.length >= 2) {
+          const src = pathArgs[0];
+          const dest = pathArgs[1];
+          // Handle trailing /. or . in cp -r src/. dest
+          const cleanSrc = src?.replace(/\/\.$/, '').replace(/\.$/, '');
+          if (cleanSrc && dest) cpSync(join(tempRoot, cleanSrc), join(tempRoot, dest), { recursive: true });
+        }
         return '';
       }
-      execSync(command, { cwd: tempRoot, stdio: 'ignore' });
+      execSync(command, { cwd: tempRoot, stdio: 'ignore' }); // NOSONAR
     } catch (e) {
       // Swallow errors for common Linux commands that might fail on Windows if not handled above
       if (['rm', 'cp', 'mkdir'].includes(cmdName || '')) {

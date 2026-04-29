@@ -156,6 +156,7 @@ jobs:
 
   generate-reports:
     needs: [main, sdk-ts, sdk-kmp, sdk-swift, e2e-tests]
+    if: ${{ always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
     secrets:
       IDENTUS_CI: ${{ secrets.IDENTUS_CI }}
       SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
