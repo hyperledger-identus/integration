@@ -28,7 +28,29 @@ export function createReportRunCmdHandler(
       writeFileSync(join(outDir, 'app.js'), '', 'utf-8');
       return '';
     }
-    execSync(command, { cwd: tempRoot, stdio: 'ignore' }); // NOSONAR — see file header; bounded test cwd
+    const [cmdName, ...args] = command.split(' ');
+    try {
+      if (cmdName === 'mkdir') {
+        const pathArg = args.find(a => !a.startsWith('-'));
+        if (pathArg) mkdirSync(join(tempRoot, pathArg), { recursive: true });
+        return '';
+      }
+      if (cmdName === 'rm') {
+        // Simple rm mock
+        return '';
+      }
+      if (cmdName === 'cp') {
+        // Simple cp mock
+        return '';
+      }
+      execSync(command, { cwd: tempRoot, stdio: 'ignore' });
+    } catch (e) {
+      // Swallow errors for common Linux commands that might fail on Windows if not handled above
+      if (['rm', 'cp', 'mkdir'].includes(cmdName || '')) {
+        return '';
+      }
+      throw e;
+    }
     return '';
   };
 }

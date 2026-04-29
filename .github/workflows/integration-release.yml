@@ -127,7 +127,7 @@ jobs:
       env: ${{ needs.main.outputs.env }}
 
   e2e-tests:
-    name: "E2E Tests"
+    name: "Quality Gate: E2E Tests"
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -150,7 +150,8 @@ jobs:
         run: npm ci
 
       - name: Run E2E tests
-        # TODO: replace with actual E2E command if different
+        # This job acts as a quality gate to prevent publishing reports from a failing state.
+        # Currently using the standard test suite; can be updated to specific E2E scenarios if needed.
         run: npm test
 
   generate-reports:
