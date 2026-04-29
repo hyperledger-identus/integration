@@ -44,7 +44,8 @@ async function getPRFilesAndDiff(repo, prNumber, token) {
     const filename = file.filename;
     const isIgnored = filename.endsWith('.md') || 
                       filename.endsWith('.txt') || 
-                      filename.startsWith('.github/');
+                      filename.startsWith('.github/workflows/') ||
+                      filename.startsWith('.github/dependabot.yml');
 
     if (isIgnored) {
       filteredCount++;
@@ -104,30 +105,8 @@ async function callGemini(prompt, apiKey, retryCount = 2) {
 
 async function postReview(repo, prNumber, token, body) {
   const commentBody = `${BOT_SIGNATURE}\n\n${body}${DISCLAIMER}`;
-  
-  try {
-    const response = await fetchWithTimeout(`https://api.github.com/repos/${repo}/pulls/${prNumber}/reviews`, {
-      method: 'POST',
-      headers: {
-        Authorization: `token ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        body: commentBody,
-        event: 'COMMENT'
-      }),
-    });
-
-    if (!response.ok) {
-      console.warn('Pull Request Review API failed, falling back to Issue Comment API.');
-      await postFallbackComment(repo, prNumber, token, commentBody);
-    } else {
-      console.log('Advisory review posted successfully.');
-    }
-  } catch (err) {
-    console.error('Failed to post review:', err.message);
-    await postFallbackComment(repo, prNumber, token, commentBody);
-  }
+  console.log('Upserting advisory review comment...');
+  await postFallbackComment(repo, prNumber, token, commentBody);
 }
 
 async function postFallbackComment(repo, prNumber, token, body) {
@@ -152,9 +131,14 @@ async function postFallbackComment(repo, prNumber, token, body) {
 async function run() {
   const { GITHUB_TOKEN, GEMINI_API_KEY, GITHUB_REPOSITORY: REPO, GITHUB_EVENT_PATH, GITHUB_EVENT_NAME } = process.env;
 
-  if (!GITHUB_TOKEN || !GEMINI_API_KEY || !REPO || !GITHUB_EVENT_PATH) {
+  if (!GITHUB_TOKEN || !REPO || !GITHUB_EVENT_PATH) {
     console.error('Required environment variables are missing.');
     process.exit(1);
+  }
+
+  if (!GEMINI_API_KEY) {
+    console.log('Skipping Gemini PR review: GEMINI_API_KEY is not available in this context.');
+    process.exit(0);
   }
 
   const event = JSON.parse(fs.readFileSync(GITHUB_EVENT_PATH, 'utf8'));
@@ -167,6 +151,14 @@ async function run() {
     triggerSource = labels.some(l => l.name === 'ai-review') ? 'Label: ai-review' : 'Default: pull_request event';
   } else if (GITHUB_EVENT_NAME === 'issue_comment') {
     if (!event.issue.pull_request) return;
+    
+    // Authorization Check: Only allow repo owners, members, or collaborators
+    const allowedAssociations = ['OWNER', 'MEMBER', 'COLLABORATOR'];
+    if (!allowedAssociations.includes(event.comment.author_association)) {
+      console.log(`Skipping: User ${event.comment.user.login} (${event.comment.author_association}) is not authorized.`);
+      return;
+    }
+
     prNumber = event.issue.number;
     const commentBody = event.comment.body || '';
     if (commentBody.includes('/gemini-review')) {

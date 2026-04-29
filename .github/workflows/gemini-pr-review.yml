@@ -11,13 +11,19 @@ concurrency:
   group: gemini-review-${{ github.event.pull_request.number || github.event.issue.number }}
   cancel-in-progress: true
 
+permissions: {}
+
 jobs:
   review:
     runs-on: ubuntu-latest
-    # Only run for pull requests or comments on pull requests
+    # Only run for pull requests OR comments that contain /gemini-review
     if: |
       github.event_name == 'pull_request' ||
-      (github.event_name == 'issue_comment' && github.event.issue.pull_request)
+      (
+        github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request &&
+        contains(github.event.comment.body, '/gemini-review')
+      )
     
     permissions:
       contents: read
@@ -25,11 +31,16 @@ jobs:
       issues: write
 
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf # v2.10.1
+        with:
+          egress-policy: audit
+
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
         with:
           node-version: '20'
 
