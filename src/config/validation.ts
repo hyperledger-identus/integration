@@ -88,11 +88,11 @@ export function validateBaseEnvironment(): EnvironmentConfig {
  */
 export function validateReleaseEnvironment(): EnvironmentConfig {
   const env = validateBaseEnvironment()
-  
+
   // For release component, VERSION is required
   // If VERSION is not set, try to extract from ENV object
   let version = process.env.VERSION
-  
+
   // If VERSION is not set, try to extract from decoded ENV object
   if (!version && process.env.ENV) {
     try {
@@ -104,7 +104,7 @@ export function validateReleaseEnvironment(): EnvironmentConfig {
       // Ignore parsing errors, will be caught by validation below
     }
   }
-  
+
   // Additional validation for release operations
   if (!version || version.trim() === '') {
     throw new Error('VERSION is required for release operations')
@@ -125,7 +125,7 @@ export function validateCloudEnvironment(): EnvironmentConfig {
   // Check only cloud-specific required variables
   const cloudRequiredVars = [
     'CLOUD_SERVICE_URL',
-    'CLOUD_SERVICE_TEMPLATE_ID', 
+    'CLOUD_SERVICE_TEMPLATE_ID',
     'CLOUD_SERVICE_TOKEN'
   ]
 

@@ -15,7 +15,7 @@ export class KotlinSdk extends TestRunner {
     async execute() {
         console.warn(`[${this.name}] SDK is currently broken and non-functional - skipping tests`)
         console.warn(`[${this.name}] This is a known limitation. See PLAN.md for details.`)
-        
+
         // Create empty results directory to prevent downstream failures
         try {
             await cmd(`mkdir -p tmp/${this.name}`)
@@ -25,7 +25,7 @@ export class KotlinSdk extends TestRunner {
         } catch (error) {
             console.error(`[${this.name}] Failed to create results directory:`, error)
         }
-        
+
         return
     }
 

@@ -60,7 +60,7 @@ function envForRun(overrides: Partial<environment> = {}): environment {
 describe('Report Generation', () => {
   let tempDir: string;
   const originalEnv = process.env;
-  
+
   beforeEach(() => {
     tempDir = createTempDir('report-test-');
     process.env = { ...originalEnv };
@@ -70,13 +70,13 @@ describe('Report Generation', () => {
     mockCmd.mockReset();
     mockCmd.mockImplementation(async () => '');
   });
-  
+
   afterEach(() => {
     cleanupTempDir(tempDir);
     process.env = originalEnv;
     vi.clearAllMocks();
   });
-  
+
   describe('preProcessAllure', () => {
     it('should process Allure results and calculate statistics correctly', async () => {
       // This test would require importing the internal function
@@ -87,30 +87,30 @@ describe('Report Generation', () => {
         broken: 1,
         skipped: 1
       });
-      
+
       expect(results).toHaveLength(14);
       expect(results.filter(r => r.status === 'passed')).toHaveLength(10);
       expect(results.filter(r => r.status === 'failed')).toHaveLength(2);
       expect(results.filter(r => r.status === 'broken')).toHaveLength(1);
       expect(results.filter(r => r.status === 'skipped')).toHaveLength(1);
     });
-    
+
     it('should add suite labels to results', () => {
       const result = generateMockAllureResult('test-1', 'passed', {
         suite: 'sdk-ts'
       });
-      
+
       expect(result.labels).toBeDefined();
       const suiteLabel = result.labels?.find(l => l.name === 'suite');
       expect(suiteLabel?.value).toBe('sdk-ts');
     });
   });
-  
+
   describe('processRunners', () => {
     it('should aggregate results from multiple runners', async () => {
       const runners = ['sdk-ts', 'sdk-swift', 'sdk-kmp'];
       const allResults: MockTestResult[] = [];
-      
+
       for (const runner of runners) {
         const results = generateMockRunnerResults(runner, {
           passed: 5,
@@ -118,42 +118,42 @@ describe('Report Generation', () => {
         });
         allResults.push(...results);
       }
-      
+
       expect(allResults).toHaveLength(18); // 6 per runner * 3 runners
-      
+
       const totalPassed = allResults.filter(r => r.status === 'passed').length;
       const totalFailed = allResults.filter(r => r.status === 'failed').length;
-      
+
       expect(totalPassed).toBe(15);
       expect(totalFailed).toBe(3);
     });
   });
-  
+
   describe('generateReleaseMetadata', () => {
     it('should generate correct release metadata for draft releases', () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const env = generateMockEnvironment({
         releaseVersion: '1.0.0-draft'
       }) as environment;
-      
+
       // The status should be 'draft' if version includes '-draft'
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       const status = env.releaseVersion?.includes('-draft') ? 'draft' : 'released';
       expect(status).toBe('draft');
     });
-    
+
     it('should generate correct release metadata for final releases', () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const env = generateMockEnvironment({
         releaseVersion: '1.0.0'
       }) as environment;
-      
+
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       const status = env.releaseVersion?.includes('-draft') ? 'draft' : 'released';
       expect(status).toBe('released');
     });
   });
-  
+
   describe('updateReleasesManifest', () => {
     it('should add new release to manifest', () => {
       const releases: ReleaseManifestEntry[] = [];
@@ -162,32 +162,32 @@ describe('Report Generation', () => {
         path: './1.0.0/index.html',
         lastUpdated: '2025-01-01'
       };
-      
+
       releases.push(newRelease);
-      
+
       expect(releases).toHaveLength(1);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(releases[0]?.version).toBe('1.0.0');
     });
-    
+
     it('should update existing release in manifest', () => {
       const releases: ReleaseManifestEntry[] = [
         { version: '1.0.0', path: './1.0.0/index.html', lastUpdated: '2025-01-01' }
       ];
-      
+
       const existingIndex = releases.findIndex((r: ReleaseManifestEntry) => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         return r.version === '1.0.0';
       });
       expect(existingIndex).toBe(0);
-      
+
       if (existingIndex >= 0) {
         releases[existingIndex] = {
           version: '1.0.0',
           path: './1.0.0/index.html',
           lastUpdated: '2025-01-02'
         };
-        
+
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const release = releases[0];
         if (release) {
@@ -196,18 +196,18 @@ describe('Report Generation', () => {
         }
       }
     });
-    
+
     it('should sort releases by version (newest first)', () => {
       const releases = [
         { version: '1.0.0', path: './1.0.0/index.html', lastUpdated: '2025-01-01' },
         { version: '1.0.1', path: './1.0.1/index.html', lastUpdated: '2025-01-02' },
         { version: '2.0.0', path: './2.0.0/index.html', lastUpdated: '2025-01-03' }
       ];
-      
+
       releases.sort((a, b) => {
         const aParts = a.version.split('.').map(Number);
         const bParts = b.version.split('.').map(Number);
-        
+
         for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
           const aPart = aParts[i] || 0;
           const bPart = bParts[i] || 0;
@@ -217,48 +217,48 @@ describe('Report Generation', () => {
         }
         return 0;
       });
-      
+
       expect(releases[0].version).toBe('2.0.0');
       expect(releases[1].version).toBe('1.0.1');
       expect(releases[2].version).toBe('1.0.0');
     });
   });
-  
+
   describe('cleanupDraftRelease', () => {
     it('should identify draft versions correctly', () => {
       const draftVersion = '1.0.0-draft';
       const finalVersion = '1.0.0';
-      
+
       expect(draftVersion.includes('-draft')).toBe(true);
       expect(finalVersion.includes('-draft')).toBe(false);
     });
-    
+
     it('should construct draft version from final version', () => {
       const finalVersion = '1.0.0';
       const draftVersion = `${finalVersion}-draft`;
-      
+
       expect(draftVersion).toBe('1.0.0-draft');
     });
   });
-  
+
   describe('Mock Allure Results', () => {
     it('should create mock Allure result files', async () => {
       const results = generateMockRunnerResults('sdk-ts', {
         passed: 3,
         failed: 1
       });
-      
+
       const runnerDir = await createMockAllureResultsDir(tempDir, 'sdk-ts', results);
-      
+
       expect(existsSync(runnerDir)).toBe(true);
-      
+
       const files = readdirSync(runnerDir).filter(f => f.endsWith('.json'));
       expect(files).toHaveLength(4);
-      
+
       // Verify file content
       const firstFile = readFileSync(join(runnerDir, files[0] as string), 'utf-8');
       const parsed = JSON.parse(firstFile) as MockTestResult;
-      
+
       expect(parsed).toHaveProperty('uuid');
       expect(parsed).toHaveProperty('status');
       expect(parsed).toHaveProperty('testCaseId');
@@ -370,7 +370,7 @@ describe('Report Generation', () => {
         skipped: 0,
         total: 0
       };
-      
+
       // When no results exist, stats should be all zeros
       expect(stats.total).toBe(0);
       expect(stats.passed).toBe(0);
@@ -387,7 +387,7 @@ describe('Report Generation', () => {
         '1.2.3.4',
         '1.2.3-beta.1+sha.123'
       ];
-      
+
       // All should return null or handle gracefully
       invalidVersions.forEach(version => {
         // Version parsing should handle edge cases
@@ -400,7 +400,7 @@ describe('Report Generation', () => {
       const emptyResults: MockTestResult[] = [];
       const totalPassed = emptyResults.filter(r => r.status === 'passed').length;
       const totalFailed = emptyResults.filter(r => r.status === 'failed').length;
-      
+
       expect(totalPassed).toBe(0);
       expect(totalFailed).toBe(0);
     });
@@ -410,7 +410,7 @@ describe('Report Generation', () => {
         { runner: 'sdk-ts' as const, error: new Error('Test error') },
         { runner: 'sdk-swift' as const, error: new Error('Another error') }
       ];
-      
+
       expect(runnerErrors.length).toBe(2);
       expect(runnerErrors[0].runner).toBe('sdk-ts');
       expect(runnerErrors[0].error.message).toBe('Test error');
@@ -419,7 +419,7 @@ describe('Report Generation', () => {
     it('should validate test statistics aggregation', () => {
       const stats1 = { passed: 10, failed: 2, broken: 1, skipped: 0, total: 13 };
       const stats2 = { passed: 5, failed: 0, broken: 0, skipped: 3, total: 8 };
-      
+
       const aggregated = {
         passed: stats1.passed + stats2.passed,
         failed: stats1.failed + stats2.failed,
@@ -427,7 +427,7 @@ describe('Report Generation', () => {
         skipped: stats1.skipped + stats2.skipped,
         total: stats1.total + stats2.total
       };
-      
+
       expect(aggregated.passed).toBe(15);
       expect(aggregated.failed).toBe(2);
       expect(aggregated.broken).toBe(1);
@@ -439,7 +439,7 @@ describe('Report Generation', () => {
       const draftVersion = '1.0.0-draft';
       const finalVersion = '1.0.0';
       const prereleaseVersion = '1.0.0-beta.1';
-      
+
       expect(draftVersion.includes('-draft')).toBe(true);
       expect(finalVersion.includes('-draft')).toBe(false);
       expect(prereleaseVersion.includes('-draft')).toBe(false);
@@ -456,7 +456,7 @@ describe('Report Generation', () => {
         '1.0.0-beta.1',
         '1.0.0-rc.1'
       ];
-      
+
       versions.forEach(version => {
         const match = version.match(/^(\d+)\.(\d+)(?:\.(\d+))?(?:-(.+))?$/);
         expect(match).not.toBeNull();
@@ -471,7 +471,7 @@ describe('Report Generation', () => {
       // Test that version comparison handles edge cases
       const v1 = { major: 1, minor: 0, patch: 0, prerelease: null };
       const v2 = { major: 1, minor: 0, patch: 0, prerelease: 'alpha' };
-      
+
       // v1 should be greater than v2 (no prerelease > prerelease)
       expect(v1.prerelease).toBeNull();
       expect(v2.prerelease).not.toBeNull();
