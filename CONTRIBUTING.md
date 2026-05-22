@@ -14,23 +14,27 @@ Thank you for your interest in contributing! This document provides guidelines a
 ### Initial Setup
 
 1. **Fork and clone the repository**
+
    ```bash
    git clone https://github.com/YOUR_USERNAME/integration.git
    cd integration
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm ci
    ```
 
 3. **Set up environment variables**
+
    ```bash
    cp .env.example .env
    # Edit .env with your configuration
    ```
 
 4. **Verify setup**
+
    ```bash
    npm test
    ```
@@ -102,6 +106,7 @@ npm run test:coverage
 ### Test Examples
 
 See `tests/` directory for examples:
+
 - `tests/report.test.ts`: Report generation tests
 - `tests/validation.test.ts`: Validation tests
 - `tests/slack.test.ts`: Slack notification tests
@@ -111,6 +116,7 @@ See `tests/` directory for examples:
 ### Adding a New Runner
 
 1. **Create runner class**
+
    ```typescript
    // src/test-runner/new-runner.ts
    import { TestRunner } from "./test-runner.js";
@@ -150,6 +156,7 @@ See `tests/` directory for examples:
 ### Local Development
 
 1. **Enable debug mode**
+
    ```bash
    export DEBUG=true
    ```
@@ -165,16 +172,19 @@ See `tests/` directory for examples:
 ### Common Debugging Scenarios
 
 **Issue: Tests failing**
+
 - Check environment variables are set
 - Verify Node.js version
 - Check test output for specific errors
 
 **Issue: Workflow failures**
+
 - Check GitHub Actions logs
 - Verify secrets are configured
 - Test locally with same inputs
 
 **Issue: Report generation issues**
+
 - Check that Allure results exist
 - Verify directory permissions
 - Check for disk space issues
@@ -218,6 +228,7 @@ See `tests/` directory for examples:
 ### Commit Messages
 
 Follow conventional commits format:
+
 ```
 type(scope): subject
 
@@ -227,6 +238,7 @@ footer (optional)
 ```
 
 Examples:
+
 - `fix(report): correct race condition in processRunners`
 - `feat(runner): add support for new SDK`
 - `docs(readme): update setup instructions`
@@ -266,4 +278,3 @@ Examples:
 ## License
 
 By contributing, you agree that your contributions will be licensed under the same license as the project (ISC).
-

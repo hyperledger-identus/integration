@@ -5,6 +5,7 @@ This directory contains unit tests for the integration repository.
 ## Setup
 
 Install dependencies:
+
 ```bash
 npm install
 ```
@@ -12,16 +13,19 @@ npm install
 ## Running Tests
 
 Run all tests:
+
 ```bash
 npm test
 ```
 
 Run tests in watch mode:
+
 ```bash
 npm run test:watch
 ```
 
 Run tests with coverage:
+
 ```bash
 npm run test:coverage
 ```
@@ -44,6 +48,7 @@ npm run test:coverage
 ## Mock Data
 
 The test suite uses mocked Allure result files to simulate SDK test runs. Each mock result includes:
+
 - `uuid` - Unique test identifier
 - `status` - Test status (passed, failed, broken, skipped)
 - `testCaseId` - Test case identifier
@@ -147,4 +152,3 @@ When adding new tests:
 4. Mock external dependencies using `vi.mock()`
 5. Test both happy paths and error scenarios
 6. Include edge cases and boundary conditions
-

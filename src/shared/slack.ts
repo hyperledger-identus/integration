@@ -16,12 +16,12 @@ function formatVersionInfo(env: environment): string {
   if (env.component === 'release' && env.releaseVersion) {
     return ` v${env.releaseVersion}`
   }
-  
+
   // Weekly component: indicate it's testing latest
   if (env.component === 'weekly') {
     return ' (latest)'
   }
-  
+
   // Service components: show the service version being tested
   if (env.component === 'cloud-agent') {
     return ` v${env.services.agent.version}`
@@ -32,7 +32,7 @@ function formatVersionInfo(env: environment): string {
   if (env.component === 'prism-node') {
     return ` v${env.services.node.version}`
   }
-  
+
   // SDK components: show the SDK version
   if (env.component === 'sdk-ts' && env.runners['sdk-ts'].enabled) {
     return ` v${env.runners['sdk-ts'].version}`
@@ -43,19 +43,19 @@ function formatVersionInfo(env: environment): string {
   if (env.component === 'sdk-kmp' && env.runners['sdk-kmp'].enabled) {
     return ` v${env.runners['sdk-kmp'].version}`
   }
-  
+
   // Manual component: show enabled SDK versions
   if (env.component === 'manual') {
     const enabledRunners = Object.entries(env.runners)
       .filter(([_, config]) => config.enabled)
       .map(([runner, config]) => `${runner.replace('sdk-', '')} v${config.version}`)
       .join(', ')
-    
+
     if (enabledRunners) {
       return ` (${enabledRunners})`
     }
   }
-  
+
   // Default: no version info
   return ''
 }
@@ -68,7 +68,7 @@ function formatVersionInfo(env: environment): string {
 async function sendSlackMessage(reportUrl: string, env: environment) {
   // Validate environment variables
   const validatedEnv = validateBaseEnvironment()
-  
+
   if (!validatedEnv.SLACK_WEBHOOK) {
     console.warn('[SLACK] Webhook not set. Skipping Slack notification.')
     return
@@ -87,7 +87,7 @@ async function sendSlackMessage(reportUrl: string, env: environment) {
     .replace("%WORKFLOW%", executionUrl)
 
   console.log(`[SLACK] Attempting to send notification for component ${env.component} to webhook`)
-  
+
   try {
     const response = await fetch(sanitizedWebhook, {
       method: "POST",
@@ -98,11 +98,11 @@ async function sendSlackMessage(reportUrl: string, env: environment) {
         text: payload
       })
     })
-    
+
     if (!response.ok) {
       throw new Error(`Slack webhook returned status ${response.status}: ${response.statusText}`)
     }
-    
+
     console.log(`[SLACK] Successfully sent notification for component ${env.component}`)
   } catch (error) {
     console.error(`[SLACK] Failed to send notification for component ${env.component}:`, error)

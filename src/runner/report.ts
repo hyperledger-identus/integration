@@ -113,7 +113,7 @@ function generateRedirectPage(component: string, nextReportId: number) {
     // Map filesystem component to URL component
     const urlComponentMap: { [key: string]: string } = {
         'sdk-ts': 'typescript',
-        'sdk-swift': 'swift', 
+        'sdk-swift': 'swift',
         'sdk-kmp': 'kotlin',
         'cloud-agent': 'cloud-agent',
         'mediator': 'mediator',
@@ -121,9 +121,9 @@ function generateRedirectPage(component: string, nextReportId: number) {
         'weekly': 'weekly',
         'release': 'release'
     };
-    
+
     const urlComponent = urlComponentMap[component] || component;
-    
+
     const html = htmlTemplate
         .replace(/__PAGE__/g, `${nextReportId}`)
         .replace(/__COMPONENT__/g, urlComponent);
@@ -158,7 +158,7 @@ function postProcessAllure(reportPath: string, _env: environment, _currentReport
         reportUrlXlinkRe,
         String.raw`.attr("xlink:href",function(t){return window.basePath + t.reportUrl}).on("click",function(e,t){e.preventDefault();var parts=t.reportUrl.match(/\.\/reports\/([^\/]+)\/(\d+)/);if(parts){var component=parts[1],reportId=parts[2],COMPONENT_PATH_MAP={'sdk-ts':'typescript','sdk-swift':'swift','sdk-kmp':'kotlin','cloud-agent':'cloud-agent','mediator':'mediator','weekly':'weekly','release':'release','manual':'manual'};parent.postMessage({type:'iframeNavigation',path:window.basePath+COMPONENT_PATH_MAP[component]+'/'+reportId},'*')}})`
     )
-    
+
     writeFileSync(`${reportPath}/app.js`, appJs)
 }
 
@@ -191,11 +191,11 @@ function generateReleaseMetadata(resultsDir: string, env: environment, testStats
             url: `https://github.com/hyperledger-identus/integration/actions/runs/${env.workflow.runId}`
         }
     };
-    
+
     getEnabledRunners(env).forEach(runner => {
         metadata.runners[runner] = env.runners[runner].version;
     });
-    
+
     writeFileSync(`${resultsDir}/release-info.json`, JSON.stringify(metadata, null, 2));
 }
 
@@ -207,7 +207,7 @@ function generateReleaseMetadata(resultsDir: string, env: environment, testStats
 async function updateReleasesManifest(componentReportDir: string, releaseVersion: string): Promise<void> {
     const manifestPath = `${componentReportDir}/releases.json`;
     let releases: ReleaseManifestEntry[] = [];
-    
+
     // Read existing manifest if it exists (use try-catch to avoid TOCTOU vulnerability)
     try {
         const manifestData = readFileSync(manifestPath, 'utf-8');
@@ -220,7 +220,7 @@ async function updateReleasesManifest(componentReportDir: string, releaseVersion
             console.warn('Failed to read existing releases manifest, creating new one');
         }
     }
-    
+
     // Check if this version already exists
     const existingIndex = releases.findIndex(r => r.version === releaseVersion);
     const releaseInfo = {
@@ -228,7 +228,7 @@ async function updateReleasesManifest(componentReportDir: string, releaseVersion
         path: `./${releaseVersion}/index.html`,
         lastUpdated: new Date().toISOString().split('T')[0]
     };
-    
+
     if (existingIndex >= 0) {
         // Update existing entry
         releases[existingIndex] = releaseInfo;
@@ -236,19 +236,19 @@ async function updateReleasesManifest(componentReportDir: string, releaseVersion
         // Add new entry
         releases.push(releaseInfo);
     }
-    
+
     // Sort releases by version (newest first)
     releases.sort((a, b) => {
         const aVersion = parseVersion(a.version);
         const bVersion = parseVersion(b.version);
-        
+
         if (aVersion && bVersion) {
             return bVersion.compare(aVersion);
         }
-        
+
         return b.version.localeCompare(a.version);
     });
-    
+
     // Write updated manifest using file descriptor to avoid TOCTOU vulnerability
     try {
         const fd = openSync(manifestPath, constants.O_CREAT | constants.O_WRONLY | constants.O_TRUNC, 0o644);
@@ -268,7 +268,7 @@ async function updateReleasesManifest(componentReportDir: string, releaseVersion
 function parseVersion(version: string): ParsedVersion | null {
     const match = version.match(/^(\d+)\.(\d+)(?:\.(\d+))?(?:-(.+))?$/);
     if (!match) return null;
-    
+
     const [, major, minor, patch, prerelease] = match;
     return {
         major: parseInt(major),
@@ -279,7 +279,7 @@ function parseVersion(version: string): ParsedVersion | null {
             if (this.major !== other.major) return this.major - other.major;
             if (this.minor !== other.minor) return this.minor - other.minor;
             if (this.patch !== other.patch) return this.patch - other.patch;
-            
+
             if (this.prerelease && !other.prerelease) return -1;
             if (!this.prerelease && other.prerelease) return 1;
             if (this.prerelease && other.prerelease) {
@@ -365,19 +365,19 @@ interface RunnerResult {
  */
 async function processRunners(env: environment, tmpResultsDir: string): Promise<{passed: boolean, stats: TestStats}> {
     const enabledRunners = getEnabledRunners(env)
-    
+
     // Process all runners in parallel and collect individual results
     const runnerResults: RunnerResult[] = await Promise.all(enabledRunners.map(async (runner): Promise<RunnerResult> => {
         const partialResultDir: string = `tmp/${runner}`
         try {
             const {passed: runnerPassed, stats: runnerStats} = preProcessAllure(partialResultDir, runner)
-            
+
             await cmd(`cp -r ${partialResultDir}/. ${tmpResultsDir}`)
-            
+
             if (!runnerPassed) {
                 console.warn(`[PROCESS RUNNERS] Runner ${runner} failed: ${runnerStats.failed} failed, ${runnerStats.broken} broken tests`)
             }
-            
+
             return {
                 runner,
                 passed: runnerPassed,
@@ -395,65 +395,65 @@ async function processRunners(env: environment, tmpResultsDir: string): Promise<
             }
         }
     }))
-    
+
     // Aggregate results sequentially (no race condition)
     let executionPassed = true
     const totalStats: TestStats = { passed: 0, failed: 0, broken: 0, skipped: 0, total: 0 }
     const runnerErrors: Array<{runner: runner, error: Error}> = []
-    
+
     for (const result of runnerResults) {
         executionPassed = executionPassed && result.passed
-        
+
         // Aggregate statistics
         totalStats.passed += result.stats.passed
         totalStats.failed += result.stats.failed
         totalStats.broken += result.stats.broken
         totalStats.skipped += result.stats.skipped
         totalStats.total += result.stats.total
-        
+
         if (result.error) {
             runnerErrors.push({ runner: result.runner, error: result.error })
         }
     }
-    
+
     // Log summary
     if (runnerErrors.length > 0) {
         console.error(`[PROCESS RUNNERS] ${runnerErrors.length} runner(s) encountered errors:`, runnerErrors.map(e => e.runner).join(', '))
     }
-    
+
     if (!executionPassed) {
         console.error(`[PROCESS RUNNERS] Execution failed. Stats: ${totalStats.passed} passed, ${totalStats.failed} failed, ${totalStats.broken} broken, ${totalStats.skipped} skipped, ${totalStats.total} total`)
     } else {
         console.log(`[PROCESS RUNNERS] All runners passed. Stats: ${totalStats.passed} passed, ${totalStats.failed} failed, ${totalStats.broken} broken, ${totalStats.skipped} skipped, ${totalStats.total} total`)
     }
-    
+
     return { passed: executionPassed, stats: totalStats }
 }
 
 async function generateAllureReport(
-    tmpResultsDir: string, 
-    outputDir: string, 
-    env: environment, 
+    tmpResultsDir: string,
+    outputDir: string,
+    env: environment,
     innerReportUrl: string,
     currentReportId: number
 ): Promise<void> {
     generateEnvironmentFile(tmpResultsDir, env)
     generateExecutorFile(tmpResultsDir, env, innerReportUrl)
-    
+
     await cmd(`npx allure generate ${tmpResultsDir} -o ${outputDir} --clean`)
     postProcessAllure(outputDir, env, currentReportId)
 }
 
 async function setupDirectories(
-    tmpResultsDir: string, 
-    componentReportDir: string, 
+    tmpResultsDir: string,
+    componentReportDir: string,
     componentLastHistory?: string,
     releaseVersion?: string
 ): Promise<void> {
     // Cleanup and create temp directory
     await cmd(`rm -rf ${tmpResultsDir}`)
     await cmd(`mkdir -p ${tmpResultsDir}`)
-    
+
     // Create component report directory
     if (releaseVersion) {
         await cmd(`mkdir -p ${componentReportDir}/${releaseVersion}`)
@@ -499,15 +499,15 @@ async function cleanupDraftRelease(componentReportDir: string, releaseVersion: s
     if (releaseVersion.includes('-draft')) {
         return;
     }
-    
+
     // Check if there's a corresponding draft version
     const draftVersion = `${releaseVersion}-draft`;
     const draftPath = `${componentReportDir}/${draftVersion}`;
-    
+
     if (existsSync(draftPath)) {
         console.log(`Cleaning up draft release: ${draftVersion}`);
         await cmd(`rm -rf ${draftPath}`);
-        
+
         // Remove draft from manifest
         const manifestPath = `${componentReportDir}/releases.json`;
         try {
@@ -546,30 +546,30 @@ async function handleReleaseReport(env: environment): Promise<void> {
     const releaseVersion = env.releaseVersion!
     let executionPassed
     let exceptionOccurred = false
-    
+
     try {
         // Cleanup draft version if this is a final release
         await cleanupDraftRelease(componentReportDir, releaseVersion)
-        
+
         // Directory setup
         await setupDirectories(tmpResultsDir, componentReportDir, undefined, releaseVersion)
-        
+
         // Process runners and get results
         const result = await processRunners(env, tmpResultsDir)
         executionPassed = result.passed
         const totalStats = result.stats
-        
+
         // Generate release metadata with test statistics
         generateReleaseMetadata(tmpResultsDir, env, totalStats)
-        
+
         // Generate Allure report
         const innerReportUrl = `/reports/release/${releaseVersion}`
-        
+
         await generateAllureReport(tmpResultsDir, `${componentReportDir}/${releaseVersion}`, env, innerReportUrl, 0)
-        
+
         // Copy release-info.json to output directory
         await cmd(`cp ${tmpResultsDir}/release-info.json ${componentReportDir}/${releaseVersion}/`)
-        
+
         // Update releases.json manifest
         await updateReleasesManifest(componentReportDir, releaseVersion)
     } catch (error) {
@@ -578,7 +578,7 @@ async function handleReleaseReport(env: environment): Promise<void> {
         const errorMessage = `[RELEASE REPORT] Failed to generate report for release '${releaseVersion}': ${error instanceof Error ? error.message : String(error)}`
         console.error(errorMessage, error instanceof Error && error.stack ? `\nStack trace: ${error.stack}` : '')
     }
-    
+
     // Notify slack if execution failed or exception occurred
     await sendSlackNotificationIfNeeded(executionPassed, exceptionOccurred, env)
 }
@@ -593,11 +593,11 @@ async function run(): Promise<void> {
     let exceptionOccurred = false
     let env: environment
     let nextReportId: number | undefined
-    
+
     try {
         // Validate environment variables
         env = JSON.parse(atob(process.env.ENV!)) as environment
-        
+
         if (env.component === 'release') {
             validateReleaseEnvironment()
         } else {
@@ -628,7 +628,7 @@ async function run(): Promise<void> {
 
         // Delete extra reports and get next report ID
         nextReportId = await cleanupOldReportsAndGetNextId(componentReportDir)
-        
+
         try {
             // Copy latest history for generation
             await cmd(`cp -r ${componentLastHistory}/. ${tmpResultsDir}/history`)
@@ -641,7 +641,7 @@ async function run(): Promise<void> {
 
         // Generate Allure report
         await generateAllureReport(tmpResultsDir, `${componentReportDir}/${nextReportId}`, env, innerReportUrl, nextReportId)
-        
+
         // Generate redirect page to latest report
         generateRedirectPage(env.component, nextReportId)
 
@@ -682,10 +682,10 @@ async function regenerate(): Promise<void> {
 
     // Components that need index.html generation
     const components = ['sdk-ts', 'sdk-swift', 'sdk-kmp', 'cloud-agent', 'mediator', 'manual', 'weekly']
-    
+
     for (const component of components) {
         const componentReportDir: string = `${PUBLIC_REPORTS_DIR}/${component}`
-        
+
         if (existsSync(componentReportDir)) {
             const nextReportId = await cleanupOldReportsAndGetNextId(componentReportDir) - 1
             generateRedirectPage(component, nextReportId)
@@ -707,19 +707,19 @@ async function regenerate(): Promise<void> {
 </body>
 </html>`
         writeFileSync(`${PUBLIC_REPORTS_DIR}/release/index.html`, releaseHtmlTemplate)
-        
+
         // Update releases.json with available release versions
         const releaseDirs = getSubfolders(releaseReportDir)
             .filter(dir => !isNaN(parseInt(dir[0]))) // Filter out version directories
             .filter(dir => dir != "0")
             .sort((a, b) => b.localeCompare(a)); // Sort descending to get latest first
-        
+
         const releases = releaseDirs.map(version => ({
             version: version,
             path: `./${version}/index.html`,
             lastUpdated: new Date().toISOString().split('T')[0]
         }));
-        
+
         writeFileSync(`${releaseReportDir}/releases.json`, JSON.stringify(releases, null, 2))
         console.log(`Generated index.html for release pointing to cards.html`)
         console.log(`Updated releases.json with ${releases.length} release versions`)
