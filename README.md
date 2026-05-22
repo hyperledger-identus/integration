@@ -32,6 +32,7 @@ We now support **manual integration testing** that allows developers to trigger 
 ### Quick Start
 
 **Via GitHub Actions**:
+
 1. Go to **Actions** → **Manual Integration Tests**
 2. Click **"Run workflow"**
 3. Select components and enter versions
@@ -80,23 +81,27 @@ npm run test:coverage
 ### Local Development Setup
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/hyperledger-identus/integration.git
    cd integration
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm ci
    ```
 
 3. **Set up environment variables**
+
    ```bash
    cp .env.example .env
    # Edit .env with your configuration
    ```
 
 4. **Run tests**
+
    ```bash
    npm test
    ```
@@ -104,6 +109,7 @@ npm run test:coverage
 ### Scripts Directory
 
 The `scripts/` directory contains utility scripts for local development and testing:
+
 - `integration-flow.ts`: Manual integration flow script for local testing
 - Use these scripts to test integration flows without triggering GitHub Actions
 
@@ -126,19 +132,23 @@ For detailed architecture documentation, see [ARCHITECTURE.md](ARCHITECTURE.md).
 The integration suite supports both draft and final releases:
 
 ### Draft Releases
+
 - Triggered when a draft release is created on GitHub
 - Version format: `{version}-draft` (e.g., `1.0.0-draft`)
 - Reports are generated and stored separately from final releases
 - Used for pre-release validation
 
 ### Final Releases
+
 - Triggered when a final (non-draft) release is published
 - Version format: `{version}` (e.g., `1.0.0`)
 - Automatically cleans up corresponding draft release reports
 - Updates release manifest with final release information
 
 ### Release Cleanup
+
 When a final release is processed:
+
 1. The system checks for a corresponding draft version
 2. If found, removes the draft release directory and manifest entry
 3. Ensures only final releases appear in the release history
@@ -148,21 +158,25 @@ When a final release is processed:
 ### Common Issues
 
 **Issue: Environment variable not found**
+
 - Ensure `.env` file exists and contains required variables
 - Check that `GH_TOKEN` is set for GitHub API access
 - Verify `SLACK_WEBHOOK` is set if you want Slack notifications
 
 **Issue: Tests failing locally**
+
 - Ensure all dependencies are installed: `npm ci`
 - Check that required environment variables are set
 - Verify Node.js version is 20 or higher: `node --version`
 
 **Issue: Workflow failures**
+
 - Check GitHub Actions logs for detailed error messages
 - Verify secrets are properly configured in repository settings
 - Ensure workflow inputs match expected format
 
 **Issue: Report generation fails**
+
 - Check that Allure results are present in `tmp/` directories
 - Verify GitHub Pages deployment permissions
 - Check Slack webhook URL format if notifications fail
@@ -170,11 +184,13 @@ When a final release is processed:
 ### Debug Mode
 
 Enable detailed logging by setting:
+
 ```bash
 export DEBUG=true
 ```
 
 This will show:
+
 - Detailed command execution logs
 - Full error stack traces
 - Environment variable values (sanitized)
@@ -202,9 +218,11 @@ cp .env.example .env
 ```
 
 **Required Environment Variables:**
+
 - `GH_TOKEN`: GitHub token with repository access
 
 **Optional Environment Variables:**
+
 - `SLACK_WEBHOOK`: Slack webhook URL for notifications
 - `DEBUG`: Set to `true` for detailed command output
 - `EXTERNAL_BASE_URL`: Base URL for external report links (defaults to GitHub Pages URL)
@@ -260,6 +278,7 @@ When there's an expected breaking change the components will have to be compatib
 ## Integration
 
 ### Service integration
+
 ```mermaid
 
 sequenceDiagram
@@ -277,6 +296,7 @@ sequenceDiagram
 ```
 
 ### Library integration
+
 ```mermaid
 
 sequenceDiagram

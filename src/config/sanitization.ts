@@ -52,19 +52,19 @@ export function sanitizeInput(input: string | undefined, options: SanitizationOp
  */
 export function sanitizeUrl(url: string | undefined, allowEmpty = false): string {
   const sanitized = sanitizeInput(url, { allowEmpty, maxLength: 2048 })
-  
+
   if (sanitized.length === 0 && allowEmpty) return sanitized
 
   try {
     const parsedUrl = new URL(sanitized)
-    
+
     // Only allow HTTP/HTTPS protocols
     if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
       throw new Error('Only HTTP and HTTPS URLs are allowed')
     }
 
     // Prevent localhost in production (unless explicitly allowed)
-    if (process.env.NODE_ENV === 'production' && 
+    if (process.env.NODE_ENV === 'production' &&
         (parsedUrl.hostname === 'localhost' || parsedUrl.hostname === '127.0.0.1')) {
       throw new Error('Localhost URLs are not allowed in production')
     }
@@ -83,20 +83,20 @@ export function sanitizeUrl(url: string | undefined, allowEmpty = false): string
  */
 export function sanitizeVersion(version: string | undefined, allowEmpty = false): string {
   const sanitized = sanitizeInput(version, { allowEmpty, maxLength: 100 })
-  
+
   if (sanitized.length === 0 && allowEmpty) return sanitized
 
   // Allow semver patterns (v1.2.3, 1.2.3, 1.2.3-alpha, etc.)
   const semverPattern = /^v?\d+\.\d+\.\d+(-[a-zA-Z0-9-.]+)?$/
-  
+
   // Allow commit hash patterns (40 character hex)
   const commitHashPattern = /^[a-fA-F0-9]{40}$/
-  
+
   // Allow branch/tag names (alphanumeric, hyphens, underscores, dots)
   const branchTagPattern = /^[a-zA-Z0-9\-_./]+$/
 
-  if (semverPattern.test(sanitized) || 
-      commitHashPattern.test(sanitized) || 
+  if (semverPattern.test(sanitized) ||
+      commitHashPattern.test(sanitized) ||
       branchTagPattern.test(sanitized)) {
     return sanitized
   }
@@ -109,11 +109,11 @@ export function sanitizeVersion(version: string | undefined, allowEmpty = false)
  */
 export function sanitizeGitHubToken(token: string | undefined): string {
   const sanitized = sanitizeInput(token, { maxLength: 500 })
-  
+
   // Basic GitHub token pattern validation
   // GitHub tokens start with ghp_, gho_, ghu_, ghs_, or ghr_
   const tokenPattern = /^(ghp_|gho_|ghu_|ghs_|ghr_)[a-zA-Z0-9]{36}$/
-  
+
   if (!tokenPattern.test(sanitized)) {
     throw new Error('Invalid GitHub token format')
   }
@@ -146,10 +146,10 @@ export function sanitizeRunner(runner: string | undefined, allowedRunners: strin
  */
 export function sanitizeCommand(command: string, allowedCommands: string[]): string {
   const sanitized = sanitizeInput(command, { maxLength: 1000 })
-  
+
   // Extract the base command (first word)
   const baseCommand = sanitized.split(' ')[0]
-  
+
   if (!allowedCommands.includes(baseCommand)) {
     throw new Error(`Command "${baseCommand}" is not allowed. Allowed commands: [${allowedCommands.join(', ')}]`)
   }
@@ -190,7 +190,7 @@ export function sanitizeCommand(command: string, allowedCommands: string[]): str
  */
 export function sanitizePath(path: string | undefined, allowEmpty = false): string {
   const sanitized = sanitizeInput(path, { allowEmpty, maxLength: 500 })
-  
+
   if (sanitized.length === 0 && allowEmpty) return sanitized
 
   // Prevent directory traversal

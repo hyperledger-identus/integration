@@ -37,21 +37,21 @@ export function generateMockAllureResult(
   const randomNum = randomBuf.readUIntBE(0, 6);
   const randomString = randomNum.toString(36);
   const uuid = `test-${testCaseId}-${Date.now()}-${randomString}`;
-  
+
   const labels: MockTestResult['labels'] = [];
-  
+
   if (options.suite) {
     labels.push({ name: 'suite', value: options.suite });
   }
-  
+
   if (options.feature) {
     labels.push({ name: 'feature', value: options.feature });
   }
-  
+
   if (options.epic) {
     labels.push({ name: 'epic', value: options.epic });
   }
-  
+
   return {
     uuid,
     status,
@@ -76,12 +76,12 @@ export function generateMockRunnerResults(
   } = {}
 ): MockTestResult[] {
   const results: MockTestResult[] = [];
-  
+
   const passed = counts.passed || 10;
   const failed = counts.failed || 0;
   const broken = counts.broken || 0;
   const skipped = counts.skipped || 0;
-  
+
   // Generate passed tests
   for (let i = 0; i < passed; i++) {
     results.push(
@@ -97,7 +97,7 @@ export function generateMockRunnerResults(
       )
     );
   }
-  
+
   // Generate failed tests
   for (let i = 0; i < failed; i++) {
     results.push(
@@ -113,7 +113,7 @@ export function generateMockRunnerResults(
       )
     );
   }
-  
+
   // Generate broken tests
   for (let i = 0; i < broken; i++) {
     results.push(
@@ -129,7 +129,7 @@ export function generateMockRunnerResults(
       )
     );
   }
-  
+
   // Generate skipped tests
   for (let i = 0; i < skipped; i++) {
     results.push(
@@ -145,7 +145,7 @@ export function generateMockRunnerResults(
       )
     );
   }
-  
+
   return results;
 }
 
@@ -159,17 +159,17 @@ export async function createMockAllureResultsDir(
 ): Promise<string> {
   const { mkdirSync, writeFileSync } = await import('fs');
   const { join } = await import('path');
-  
+
   const runnerDir = join(baseDir, runner);
   mkdirSync(runnerDir, { recursive: true });
-  
+
   results.forEach((result, index) => {
     // Must end with `-result.json` — matches Allure layout and report.preProcessAllure filter
     const fileName = `${index}-${result.uuid}-result.json`;
     const filePath = join(runnerDir, fileName);
     writeFileSync(filePath, JSON.stringify(result, null, 2), 'utf-8');
   });
-  
+
   return runnerDir;
 }
 

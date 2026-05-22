@@ -73,7 +73,7 @@ jobs:
           path: tmp/sdk-kmp
           run-id: ${{ inputs.run-id }}
           github-token: ${{ secrets.IDENTUS_CI }}
-          
+
       - name: Download sdk-swift
         if: inputs.sdk-swift
         continue-on-error: true
