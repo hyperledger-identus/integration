@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<body>
+    <script>
+        // Get basePath from parent window
+        const basePath = (window.parent && window.parent.basePath) ? window.parent.basePath : '/';
+        const fullPath = basePath + 'neoprism/0';
+        
+        // Update parent URL if we're in an iframe
+        if (window.parent && window.parent !== window) {
+            window.parent.history.replaceState({page: fullPath}, '', fullPath);
+            
+            // Send navigation message to update breadcrumbs and content
+            parent.postMessage({
+                type: 'iframeNavigation',
+                path: fullPath
+            }, '*');
+        }
+        window.location.href = "0/?c=" + Date.now()
+    </script>
+</body>
+</html>

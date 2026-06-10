@@ -1,0 +1,33 @@
+# Static reverse-proxy used by `just run-sdk-swift-e2e`.
+#
+# A single ngrok tunnel points at caddy's :8000; caddy routes by path to the
+# three Identus backends *inside* the compose network (container ports, not
+# host ports). Path prefixes are stripped so each backend is served at its root.
+#
+#   https://<tunnel>/                  -> cloud-agent REST  (cloud-agent:8085)
+#   https://<tunnel>/didcomm[/*]       -> cloud-agent DIDComm (cloud-agent:8090)
+#   https://<tunnel>/mediator/*        -> mediator HTTP     (mediator:8080)
+#   wss://<tunnel>/mediator/ws         -> mediator WebSocket (mediator:8080)
+#
+# cloud-agent owns the root because it has the largest self-referential surface
+# (status-list URLs embedded in issued credentials, pagination links derived
+# from the Host header). Serving it at root keeps those links correct without a
+# prefix. caddy's reverse_proxy upgrades WebSocket connections automatically, so
+# `/mediator/ws` reaches the mediator's ws endpoint at `/ws` after strip.
+
+:8000 {
+	@didcomm path /didcomm /didcomm/*
+	handle @didcomm {
+		uri strip_prefix /didcomm
+		reverse_proxy cloud-agent:8090
+	}
+
+	@mediator path /mediator /mediator/*
+	handle @mediator {
+		uri strip_prefix /mediator
+		reverse_proxy mediator:8080
+	}
+
+	# everything else -> cloud-agent REST API (served at root)
+	reverse_proxy cloud-agent:8085
+}

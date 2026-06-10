@@ -9,6 +9,7 @@ This repository aggregates the result of end-to-end test between the new compone
 ## Table of Contents
 
 - [Quick Start](#-new-feature-manual-integration-testing)
+- [Running the integration harness](#running-the-integration-harness)
 - [End-to-end Test Matrix](#end-to-end-test-matrix)
 - [Usage](#usage)
 - [Components](#components)
@@ -37,6 +38,32 @@ We now support **manual integration testing** that allows developers to trigger 
 2. Click **"Run workflow"**
 3. Select components and enter versions
 4. Run the test
+
+## Running the integration harness
+
+The integration harness can be triggered two ways:
+
+- **Manual dispatch** — a human directly runs the justfile recipes (`just run-sdk-ts-e2e`, `just run-sdk-swift-e2e`) after editing version variables in the justfile.
+- **AI-assisted workflow** — an agent uses the `run-identus-integration` skill to detect latest versions, confirm them with the user, update the justfile, and trigger the recipes.
+
+Both paths use the same justfile recipes and have the same prerequisites.
+
+### Prerequisites
+
+| Prerequisite | Required for | Setup |
+|---|---|---|
+| Nix devshell (recommended) | All runs | `nix develop` or `direnv allow` — provides the tools the recipes depend on (optional if already on PATH) |
+| gh CLI authenticated | All runs | `gh auth login` — recipes dispatch GitHub Actions workflows |
+| Docker daemon running | sdk-swift only | The sdk-swift recipe starts a local docker-compose stack |
+| ngrok authenticated | sdk-swift only | The sdk-swift recipe creates a tunnel; ngrok auth is required for stable tunnels |
+| Environment variables | All runs | Some env vars (e.g., API tokens) must be set manually — see [Usage](#usage) for what's needed |
+
+### Justfile recipes
+
+| Recipe | CI workflow | Blocks? | Local stack? |
+|---|---|---|---|
+| `run-sdk-ts-e2e` | `integration-manual.yml` | No | No (CI only) |
+| `run-sdk-swift-e2e` | `sdk-swift-local-tunnel.yml` | Yes | Yes (docker + ngrok) |
 
 ## End-to-end test matrix
 

@@ -1,0 +1,156 @@
+# Self-contained Identus stack for GitHub CI integration tests.
+#
+# Replaces the previous external "cloud service" preview deployment. The whole
+# stack runs on the GitHub Actions runner and is reached over host.docker.internal
+# so that the host-side SDK test process and the containers resolve identical URLs.
+# The workflow must map host.docker.internal -> 127.0.0.1 in the runner's /etc/hosts.
+#
+# Image tags are injected from the resolved environment:
+#   CLOUD_AGENT_VERSION, NEOPRISM_VERSION, MEDIATOR_VERSION
+#
+# Exposed on the host:
+#   cloud-agent REST API : http://host.docker.internal:8080  (AGENT_URL)
+#   cloud-agent DIDComm  : http://host.docker.internal:8090
+#   mediator             : http://host.docker.internal:8081  (MEDIATOR_URL, OOB at /invitationOOB)
+#   neoprism  REST API   : http://host.docker.internal:8082  (debug only; not used by SDKs)
+
+services:
+  agent-db:
+    image: postgres:13
+    environment:
+      POSTGRES_MULTIPLE_DATABASES: "pollux,connect,agent"
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - ./postgres/init-script.sh:/docker-entrypoint-initdb.d/init-script.sh
+      - ./postgres/max_conns.sql:/docker-entrypoint-initdb.d/max_conns.sql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "agent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # DID/ledger backend. Runs in `dev` mode: in-memory blockchain, in-memory
+  # SQLite for the neoprism state, no external Cardano services required.
+  neoprism:
+    image: docker.io/hyperledgeridentus/identus-neoprism:${NEOPRISM_VERSION}
+    command:
+      - dev
+    environment:
+      NPRISM_CARDANO_NETWORK: custom
+      NPRISM_CONFIRMATION_BLOCKS: '0'
+      NPRISM_DB_URL: 'sqlite::memory:'
+      NPRISM_INDEX_INTERVAL: '1'
+      RUST_LOG: info,oura=warn,tower_http::trace=debug
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/_system/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    ports:
+      # Host-side mapping is for local debugging only (Swagger UI, /api/_system/health).
+      # The cloud-agent reaches neoprism over the in-network DNS name on :8080.
+      - "8082:8080"
+
+  cloud-agent:
+    image: docker.io/hyperledgeridentus/identus-cloud-agent:${CLOUD_AGENT_VERSION}
+    environment:
+      POLLUX_DB_HOST: agent-db
+      POLLUX_DB_PORT: 5432
+      POLLUX_DB_NAME: pollux
+      POLLUX_DB_USER: postgres
+      POLLUX_DB_PASSWORD: postgres
+      CONNECT_DB_HOST: agent-db
+      CONNECT_DB_PORT: 5432
+      CONNECT_DB_NAME: connect
+      CONNECT_DB_USER: postgres
+      CONNECT_DB_PASSWORD: postgres
+      AGENT_DB_HOST: agent-db
+      AGENT_DB_PORT: 5432
+      AGENT_DB_NAME: agent
+      AGENT_DB_USER: postgres
+      AGENT_DB_PASSWORD: postgres
+      DIDCOMM_SERVICE_URL: http://host.docker.internal:8090
+      REST_SERVICE_URL: http://host.docker.internal:8080
+      # Status-list URL is embedded in issued credentials and fetched by the
+      # host-side test process, so it must be the host-reachable address (the
+      # internal default is localhost:8085, unreachable from the host).
+      POLLUX_STATUS_LIST_REGISTRY_PUBLIC_URL: http://host.docker.internal:8080
+      # DID/VDR backend: neoprism. The cloud-agent exposes its REST API to SDKs
+      # as before, and proxies DID + VDR operations to neoprism internally.
+      NODE_BACKEND: neoprism
+      NEOPRISM_BASE_URL: http://neoprism:8080
+      VDR_NEOPRISM_DRIVER_ENABLED: "true"
+      VDR_PRISM_NODE_DRIVER_ENABLED: "false"
+      SECRET_STORAGE_BACKEND: postgres
+      DEV_MODE: true
+      API_KEY_ENABLED: false
+      # AnonCreds is feature-flagged off by default; the e2e suite exercises it.
+      ENABLE_ANONCRED: true
+      ISSUE_BG_JOB_RECORDS_LIMIT: 25
+      ISSUE_BG_JOB_RECURRENCE_DELAY: 100 milliseconds
+      ISSUE_BG_JOB_PROCESSING_PARALLELISM: 20
+      PRESENTATION_BG_JOB_RECORDS_LIMIT: 25
+      PRESENTATION_BG_JOB_RECURRENCE_DELAY: 100 milliseconds
+      PRESENTATION_BG_JOB_PROCESSING_PARALLELISM: 20
+      CONNECT_BG_JOB_RECORDS_LIMIT: 25
+      CONNECT_BG_JOB_RECURRENCE_DELAY: 100 milliseconds
+      CONNECT_BG_JOB_PROCESSING_PARALLELISM: 20
+    ports:
+      - "8080:8085"
+      - "8090:8090"
+    depends_on:
+      agent-db:
+        condition: service_healthy
+      neoprism:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085/_system/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  mongo:
+    image: mongo:6.0
+    command: ["--auth"]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+      MONGO_INITDB_DATABASE: mediator
+    volumes:
+      - ./mongo/initdb.js:/docker-entrypoint-initdb.d/initdb.js
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mediator:
+    image: docker.io/hyperledgeridentus/identus-mediator:${MEDIATOR_VERSION}
+    ports:
+      - "8081:8080"
+    environment:
+      # Demo keys only — do not reuse for production deployments.
+      KEY_AGREEMENT_D: Z6D8LduZgZ6LnrOHPrMTS6uU2u5Btsrk1SGs4fn8M7c
+      KEY_AGREEMENT_X: Sr4SkIskjN_VdKTn0zkjYbhGTWArdUNE4j_DmUpnQGw
+      KEY_AUTHENTICATION_D: INXCnxFEl0atLIIQYruHzGd5sUivMRyQOzu87qVerug
+      KEY_AUTHENTICATION_X: MBjnXZxkMcoQVVL21hahWAw43RuAG-i64ipbeKKqwoA
+      SERVICE_ENDPOINTS: "http://host.docker.internal:8081;ws://host.docker.internal:8081/ws"
+      MONGODB_USER: admin
+      MONGODB_PASSWORD: admin
+      MONGODB_PROTOCOL: mongodb
+      MONGODB_HOST: mongo
+      MONGODB_PORT: 27017
+      MONGODB_DB_NAME: mediator
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: curl --fail http://localhost:8080/health || exit 1
+      interval: 5s
+      timeout: 8s
+      retries: 20
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

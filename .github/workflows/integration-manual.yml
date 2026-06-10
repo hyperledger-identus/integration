@@ -15,8 +15,8 @@ on:
         default: ''
         type: string
 
-      prism_node_version:
-        description: 'Prism-node version (e.g., 2.6.0)'
+      neoprism_version:
+        description: 'Neoprism version (e.g., 0.14.1)'
         required: true
         default: ''
         type: string
@@ -81,13 +81,10 @@ jobs:
           RUN_ID: ${{ github.run_id }}
           CLOUD_AGENT_VERSION: ${{ github.event.inputs.cloud_agent_version }}
           MEDIATOR_VERSION: ${{ github.event.inputs.mediator_version }}
-          PRISM_NODE_VERSION: ${{ github.event.inputs.prism_node_version }}
+          NEOPRISM_VERSION: ${{ github.event.inputs.neoprism_version }}
           SDK_TS_VERSION: ${{ github.event.inputs.sdk_ts_version }}
           SDK_KMP_VERSION: ${{ github.event.inputs.sdk_kmp_version }}
           SDK_SWIFT_VERSION: ${{ github.event.inputs.sdk_swift_version }}
-          CLOUD_SERVICE_TOKEN: ${{ secrets.CLOUD_SERVICE_TOKEN }}
-          CLOUD_SERVICE_URL: ${{ secrets.CLOUD_SERVICE_URL }}
-          CLOUD_SERVICE_TEMPLATE_ID: ${{ secrets.CLOUD_SERVICE_TEMPLATE_ID }}
         run: |
           npm ci
           npm run environment:manual

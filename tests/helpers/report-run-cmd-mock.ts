@@ -11,7 +11,7 @@ const ALLURE_OUTPUT_FLAG = /-o\s+(\S+)/;
 
 export function createReportRunCmdHandler(
   tempRoot: string,
-  options?: { failAllure?: boolean }
+  options?: { failAllure?: boolean; omitAppJs?: boolean }
 ): (command: string) => Promise<string> {
   return async (command: string): Promise<string> => {
     if (command.includes('npx allure generate')) {
@@ -25,7 +25,9 @@ export function createReportRunCmdHandler(
       const outDir = outDirMatch[1];
       mkdirSync(outDir, { recursive: true });
       mkdirSync(join(outDir, 'history'), { recursive: true });
-      writeFileSync(join(outDir, 'app.js'), '', 'utf-8');
+      if (!options?.omitAppJs) {
+        writeFileSync(join(outDir, 'app.js'), '', 'utf-8');
+      }
       return '';
     }
     execSync(command, { cwd: tempRoot, stdio: 'ignore' }); // NOSONAR — see file header; bounded test cwd

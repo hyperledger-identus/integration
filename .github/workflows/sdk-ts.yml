@@ -52,7 +52,7 @@ jobs:
         env:
           VERSION: v0.13.1
         run: |
-          URL="https://raw.githubusercontent.com/drager/wasm-pack/refs/tags/v0.13.1/docs/_installer/init.sh"
+          URL="https://raw.githubusercontent.com/rustwasm/wasm-pack/refs/tags/v0.13.1/docs/_installer/init.sh"
           EXPECTED_HASH="3e91ccfb5ca63dfd6761a3b7acbf6aca04be365e900468888e6615e79528a7cc"
           curl -sSfL "$URL" -o wasm-pack-init.sh
           echo "$EXPECTED_HASH wasm-pack-init.sh" | sha256sum -c -
@@ -61,8 +61,36 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Map host.docker.internal to the runner host
+        run: echo "127.0.0.1 host.docker.internal" | sudo tee -a /etc/hosts
+
+      - name: Start Identus stack
+        run: |
+          ENV_JSON="$(echo "$ENV" | base64 --decode)"
+          export CLOUD_AGENT_VERSION="$(echo "$ENV_JSON" | jq -r '.services.agent.version')"
+          export MEDIATOR_VERSION="$(echo "$ENV_JSON" | jq -r '.services.mediator.version')"
+          export NEOPRISM_VERSION="$(echo "$ENV_JSON" | jq -r '.services.node.version')"
+          echo "cloud-agent=$CLOUD_AGENT_VERSION mediator=$MEDIATOR_VERSION neoprism=$NEOPRISM_VERSION"
+          docker compose -f infra/docker-compose.ci.yml up -d --wait --wait-timeout 300
+
       - name: Execute sdk-ts
         run: npm run integration -- --runner sdk-ts
+
+      - name: Dump stack logs
+        # Always dump: the integration CLI swallows test failures (exits 0), so
+        # `failure()` would skip this and we'd lose the agent-side context.
+        if: always()
+        run: |
+          echo "::group::cloud-agent (full)"
+          docker compose -f infra/docker-compose.ci.yml logs --no-color cloud-agent
+          echo "::endgroup::"
+          echo "::group::mediator / neoprism / dbs (tail)"
+          docker compose -f infra/docker-compose.ci.yml logs --no-color --tail 300 mediator neoprism agent-db mongo
+          echo "::endgroup::"
+
+      - name: Tear down Identus stack
+        if: always()
+        run: docker compose -f infra/docker-compose.ci.yml down -v
 
       - name: Upload partial allure-results
         if: always()

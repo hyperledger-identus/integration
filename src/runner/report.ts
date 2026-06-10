@@ -41,9 +41,13 @@ async function sendSlackNotificationIfNeeded(
             await slack.sendSlackErrorMessage(externalReportUrl, env)
             console.log(`[SLACK] Notification sent successfully for component ${env.component}`)
         } catch (slackError) {
+            // Slack is best-effort. Re-throwing here was masking the real report
+            // error (e.g. a dead webhook returning 404) and surfacing that as the
+            // workflow failure, which made CI red for the wrong reason. Log and
+            // continue so that `executionPassed` / `exceptionOccurred` remain the
+            // source of truth for the job's outcome.
             const errorMessage = `[SLACK] Failed to send notification for component '${env.component}': ${slackError instanceof Error ? slackError.message : String(slackError)}`
             console.error(errorMessage)
-            throw new Error(errorMessage, { cause: slackError })
         }
     } else {
         console.log(`[REPORT] All tests passed for component ${env.component}, no Slack notification needed`)
@@ -81,7 +85,7 @@ function generateEnvironmentFile(resultsDir: string, env: environment): void {
     const environmentProps: string[] = []
     environmentProps.push(`agent: ${env.services.agent.version}`)
     environmentProps.push(`mediator: ${env.services.mediator.version}`)
-    environmentProps.push(`prism-node: ${env.services.node.version}`)
+    environmentProps.push(`neoprism: ${env.services.node.version}`)
 
     getEnabledRunners(env).forEach(runner => {
         environmentProps.push(`${runner}: ${env.runners[runner].version}`)
@@ -117,6 +121,7 @@ function generateRedirectPage(component: string, nextReportId: number) {
         'sdk-kmp': 'kotlin',
         'cloud-agent': 'cloud-agent',
         'mediator': 'mediator',
+        'neoprism': 'neoprism',
         'manual': 'manual',
         'weekly': 'weekly',
         'release': 'release'
@@ -145,7 +150,23 @@ function getSubfolders(dir: string): string[] {
 }
 
 function postProcessAllure(reportPath: string, _env: environment, _currentReportId: number) {
-    let appJs = readFileSync(`${reportPath}/app.js`).toString()
+    const appJsPath = `${reportPath}/app.js`
+
+    // Allure CLI versions don't all emit the same report layout. Newer bundles
+    // (and partial runs after `--clean`) can produce a "successfully generated"
+    // message while leaving no `app.js` at the report root. Post-processing is
+    // a cosmetic enhancement, so treat its absence as a warning rather than
+    // failing the whole report job.
+    if (!existsSync(appJsPath)) {
+        console.warn(
+            `[REPORT] ${appJsPath} not found - skipping Allure post-processing. ` +
+            `The report itself is still generated; only the buildUrl / xlink:href ` +
+            `rewrites are skipped.`
+        )
+        return
+    }
+
+    let appJs = readFileSync(appJsPath).toString()
     appJs = appJs.replace(
         `return'                    <a class="link" href="'+a(i(null!=e?s(e,"buildUrl"):e,e))`,
         `return'                    <a class="link" target="_blank" href="'+a(i(null!=e?s(e,"buildUrl"):e,e))`
@@ -156,10 +177,18 @@ function postProcessAllure(reportPath: string, _env: environment, _currentReport
         /\.attr\("xlink:href",(?:\(function\(t\)\{return t\.reportUrl\}\)|function\(t\)\{return t\.reportUrl\})\)/
     appJs = appJs.replace(
         reportUrlXlinkRe,
-        String.raw`.attr("xlink:href",function(t){return window.basePath + t.reportUrl}).on("click",function(e,t){e.preventDefault();var parts=t.reportUrl.match(/\.\/reports\/([^\/]+)\/(\d+)/);if(parts){var component=parts[1],reportId=parts[2],COMPONENT_PATH_MAP={'sdk-ts':'typescript','sdk-swift':'swift','sdk-kmp':'kotlin','cloud-agent':'cloud-agent','mediator':'mediator','weekly':'weekly','release':'release','manual':'manual'};parent.postMessage({type:'iframeNavigation',path:window.basePath+COMPONENT_PATH_MAP[component]+'/'+reportId},'*')}})`
+        String.raw`.attr("xlink:href",function(t){return window.basePath + t.reportUrl}).on("click",function(e,t){e.preventDefault();var parts=t.reportUrl.match(/\.\/reports\/([^\/]+)\/(\d+)/);if(parts){var component=parts[1],reportId=parts[2],COMPONENT_PATH_MAP={'sdk-ts':'typescript','sdk-swift':'swift','sdk-kmp':'kotlin','cloud-agent':'cloud-agent','mediator':'mediator','neoprism':'neoprism','weekly':'weekly','release':'release','manual':'manual'};parent.postMessage({type:'iframeNavigation',path:window.basePath+COMPONENT_PATH_MAP[component]+'/'+reportId},'*')}})`
     )
 
-    writeFileSync(`${reportPath}/app.js`, appJs)
+    try {
+        writeFileSync(appJsPath, appJs)
+    } catch (e) {
+        // Don't let a read-only fs / locked file fail the job; the report HTML
+        // is already on disk from `npx allure generate`.
+        console.warn(
+            `[REPORT] Failed to rewrite ${appJsPath}: ${e instanceof Error ? e.message : String(e)}`
+        )
+    }
 }
 
 interface TestResult {
@@ -181,7 +210,7 @@ function generateReleaseMetadata(resultsDir: string, env: environment, testStats
         components: {
             "cloud-agent": env.services.agent.version,
             "mediator": env.services.mediator.version,
-            "prism-node": env.services.node.version
+            "neoprism": env.services.node.version
         },
         runners: {},
         testResults: testStats,
@@ -681,7 +710,7 @@ async function regenerate(): Promise<void> {
     await cmd(`cp -r ${INITIAL_PAGES_DIR}/static/. ${PUBLIC_DIR}/static/`)
 
     // Components that need index.html generation
-    const components = ['sdk-ts', 'sdk-swift', 'sdk-kmp', 'cloud-agent', 'mediator', 'manual', 'weekly']
+    const components = ['sdk-ts', 'sdk-swift', 'sdk-kmp', 'cloud-agent', 'mediator', 'neoprism', 'manual', 'weekly']
 
     for (const component of components) {
         const componentReportDir: string = `${PUBLIC_REPORTS_DIR}/${component}`

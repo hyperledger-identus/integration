@@ -1,0 +1,81 @@
+# Local override applied on top of docker-compose.ci.yml for
+# `just run-sdk-swift-e2e`. It is NEVER used by CI.
+#
+# What it does:
+#   1. Adds an `ngrok` service (free tier) that allocates a public URL and
+#      forwards it to caddy:8000 over the compose network. Its local agent API
+#      (:4040) is published to the host loopback so the recipe can read the
+#      (random, per-run) public URL.
+#   2. Adds a `caddy` reverse-proxy service (path-routing, see
+#      Caddyfile.local-tunnel) reached by ngrok at caddy:8000. No host port:
+#      nothing outside the compose network needs it now that ngrok is a sibling.
+#   3. Rewrites the URLs the services self-advertise (in DID docs, OOB
+#      invitations, issued credentials) from host.docker.internal to the public
+#      tunnel host. Without this, the SDK running on the GitHub macOS runner
+#      would receive host.docker.internal URLs it cannot reach.
+#
+# Boot order (free-tier ngrok assigns the URL at runtime, and the backends
+# embed it at startup, so the URL must be known first):
+#   docker compose -f ... up -d ngrok        # allocate URL
+#   TUNNEL_HOST=$(curl localhost:4040/...)   # read it
+#   export TUNNEL_HOST
+#   docker compose -f ... up -d --wait       # caddy + backends (embed TUNNEL_HOST)
+#
+# Required host env (exported by the recipe before `compose up`):
+#   NGROK_AUTHTOKEN        ngrok auth token (passed into the ngrok container)
+#   TUNNEL_HOST            bare host of the ngrok public URL (set by the recipe)
+#   CLOUD_AGENT_VERSION    image tag for cloud-agent
+#   MEDIATOR_VERSION       image tag for mediator
+#   NEOPRISM_VERSION       image tag for neoprism
+#
+# Cleanup is a single `docker compose ... down -v`: ngrok lives in the same
+# invocation, so there is no host process to kill.
+
+services:
+  ngrok:
+    image: ngrok/ngrok
+    # Entry point of the image is `ngrok`, so this runs `ngrok http caddy:8000`.
+    # The upstream is a sibling service on the compose network, not the host.
+    command: ["http", "caddy:8000"]
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:?NGROK_AUTHTOKEN must be exported by the recipe}
+    ports:
+      # ngrok's unauthenticated local agent API. Bound to loopback only and
+      # used by the recipe to discover the tunnel's public URL. The recipe
+      # guards against a pre-existing :4040 squat (now a docker bind conflict).
+      - "127.0.0.1:4040:4040"
+    # No depends_on: the recipe brings ngrok up on its own first so it can read
+    # the free-tier random URL before the backends (which embed it) start.
+    # ngrok allocates the URL against its cloud at startup and connects to
+    # caddy:8000 lazily on each request, so it starts fine before caddy exists.
+    # No healthcheck: the recipe's URL-poll loop is the readiness signal.
+
+  caddy:
+    image: caddy:2
+    # No host port: the host ngrok is gone. ngrok (a sibling service) reaches
+    # caddy over the compose network at caddy:8000.
+    volumes:
+      - ./Caddyfile.local-tunnel:/etc/caddy/Caddyfile:ro
+    depends_on:
+      cloud-agent:
+        condition: service_healthy
+      mediator:
+        condition: service_healthy
+    # No healthcheck: caddy starts instantly, depends_on guarantees backends are
+    # healthy first, and the recipe runs its own end-to-end tunnel healthcheck
+    # before triggering the workflow.
+
+  cloud-agent:
+    environment:
+      # REST + status-list at the tunnel root (agent owns root so its
+      # self-referential absolute URLs survive without a prefix).
+      REST_SERVICE_URL: https://${TUNNEL_HOST:?TUNNEL_HOST must be exported by the recipe}
+      POLLUX_STATUS_LIST_REGISTRY_PUBLIC_URL: https://${TUNNEL_HOST}
+      # DIDComm under the /didcomm path (caddy strips the prefix).
+      DIDCOMM_SERVICE_URL: https://${TUNNEL_HOST}/didcomm
+
+  mediator:
+    environment:
+      # HTTP + WebSocket under the /mediator path. ngrok terminates TLS so the
+      # advertised ws scheme is wss://; caddy proxies the upgrade to mediator:8080.
+      SERVICE_ENDPOINTS: "https://${TUNNEL_HOST}/mediator;wss://${TUNNEL_HOST}/mediator/ws"
