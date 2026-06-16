@@ -1,0 +1,133 @@
+name: sdk-swift local-tunnel (manual)
+
+# Manually-triggered sdk-swift e2e run against a locally-hosted Identus stack
+# exposed over a public tunnel. Triggered by `just run-sdk-swift-e2e`, which
+# starts the docker stack + ngrok tunnel locally and passes the 2 SDK-facing
+# tunnel URLs (plus versions) as inputs.
+#
+# This workflow is self-contained and intentionally does NOT touch the official
+# integration.yml / integration-manual.yml / sdk-swift.yml paths. It builds the
+# ENV blob itself (pure shell + jq) instead of relying on the `main` job, and it
+# does not start any docker stack on the runner (the stack is remote, via
+# tunnel). It otherwise mirrors sdk-swift.yml's job body.
+#
+# The ENV JSON only needs the fields the integration runner actually consumes
+# (see src/runner/integration.ts): runners.sdk-swift, services.agent.url,
+# services.mediator.url.
+
+on:
+  workflow_dispatch:
+    inputs:
+      agent_url:
+        description: "Tunneled cloud-agent REST base URL (e.g. https://abc.ngrok-free.app)"
+        required: true
+        type: string
+      mediator_url:
+        description: "Tunneled mediator base URL (e.g. https://abc.ngrok-free.app/mediator)"
+        required: true
+        type: string
+      cloud_agent_version:
+        description: "cloud-agent docker tag"
+        required: true
+        type: string
+      mediator_version:
+        description: "mediator docker tag"
+        required: true
+        type: string
+      neoprism_version:
+        description: "neoprism docker tag"
+        required: true
+        type: string
+      sdk_swift_version:
+        description: "sdk-swift git tag to test"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+# Only one local-tunnel run at a time — the stack/tunnel behind it is single-tenant.
+concurrency:
+  group: "sdk-swift-local-tunnel"
+  cancel-in-progress: false
+
+jobs:
+  integration:
+    name: "sdk-swift (local-tunnel)"
+    runs-on: macos-latest
+    env:
+      RUNNER: "sdk-swift"
+
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+
+      - name: Build ENV (base64 JSON)
+        id: build-env
+        env:
+          AGENT_URL: ${{ inputs.agent_url }}
+          MEDIATOR_URL: ${{ inputs.mediator_url }}
+          CLOUD_AGENT_VERSION: ${{ inputs.cloud_agent_version }}
+          MEDIATOR_VERSION: ${{ inputs.mediator_version }}
+          NEOPRISM_VERSION: ${{ inputs.neoprism_version }}
+          SDK_SWIFT_VERSION: ${{ inputs.sdk_swift_version }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          ENV_JSON="$(jq -n \
+            --arg agent    "$AGENT_URL" \
+            --arg mediator "$MEDIATOR_URL" \
+            --arg agentv   "$CLOUD_AGENT_VERSION" \
+            --arg medv     "$MEDIATOR_VERSION" \
+            --arg nodev    "$NEOPRISM_VERSION" \
+            --arg swiftv   "$SDK_SWIFT_VERSION" \
+            --argjson runid "$RUN_ID" \
+            '{
+              component: "manual",
+              workflow: { runId: $runid },
+              services: {
+                agent:    { version: $agentv, url: $agent },
+                mediator: { version: $medv,   url: $mediator },
+                node:     { version: $nodev,  url: "" }
+              },
+              runners: {
+                "sdk-ts":    { enabled: false, build: false, version: "" },
+                "sdk-kmp":   { enabled: false, build: false, version: "" },
+                "sdk-swift": { enabled: true,  build: false, version: $swiftv }
+              }
+            }')"
+          echo "::group::ENV JSON"
+          echo "$ENV_JSON" | jq .
+          echo "::endgroup::"
+          ENV_B64="$(printf '%s' "$ENV_JSON" | base64)"
+          echo "env=$ENV_B64" >> "$GITHUB_OUTPUT"
+
+      - name: Set Xcode 16.2
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Execute sdk-swift
+        env:
+          ENV: ${{ steps.build-env.outputs.env }}
+          # Defensive: avoids anonymous git rate limits when cloning sdk-swift.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run integration -- --runner sdk-swift
+
+      - name: Upload partial allure-results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sdk-swift-local-tunnel
+          path: './tmp/sdk-swift'
