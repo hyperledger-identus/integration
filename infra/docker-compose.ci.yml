@@ -21,6 +21,8 @@ services:
       POSTGRES_MULTIPLE_DATABASES: "pollux,connect,agent"
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
+      # Must match the *_DB_APP_PASSWORD defaults in cloud-agent ("password").
+      POSTGRES_APP_PASSWORD: password
     volumes:
       - ./postgres/init-script.sh:/docker-entrypoint-initdb.d/init-script.sh
       - ./postgres/max_conns.sql:/docker-entrypoint-initdb.d/max_conns.sql
