@@ -1,6 +1,6 @@
 import { Octokit } from 'octokit'
 import { components, environment, repo, repos, component } from '../shared/types.js'
-import { validateBaseEnvironment, validateCloudEnvironment } from '../config/validation.js'
+import { validateBaseEnvironment } from '../config/validation.js'
 import { sanitizeVersion, sanitizeComponent } from '../config/sanitization.js'
 
 /**
@@ -97,12 +97,11 @@ async function run(): Promise<string> {
         }
     }
 
-    environment['services']['node']['version'] = '2.6.0'
-
     // if weekly, set all to latest
     if (component == 'weekly') {
         environment['services']['agent']['version'] = await getLatestDockerRevision('identus-cloud-agent')
         environment['services']['mediator']['version'] = await getLatestDockerRevision('identus-mediator')
+        environment['services']['node']['version'] = await getLatestDockerRevision('identus-neoprism')
         environment['runners']['sdk-ts'] = initRunner(true, true, await getLatestCommit('sdk-ts'))
         environment['runners']['sdk-kmp'] = initRunner(false, false, await getLatestCommit('sdk-kmp'))
         environment['runners']['sdk-swift'] = initRunner(true, true, await getLatestCommit('sdk-swift'))
@@ -110,6 +109,7 @@ async function run(): Promise<string> {
         // setup everything as `release` to change each component
         environment['services']['agent']['version'] = await getLatestReleaseTag('cloud-agent')
         environment['services']['mediator']['version'] = await getLatestReleaseTag('mediator')
+        environment['services']['node']['version'] = await getLatestReleaseTag('neoprism')
         environment['runners']['sdk-ts'] = initRunner(true, false, await getLatestReleaseTag('sdk-ts'))
         environment['runners']['sdk-kmp'] = initRunner(true, false, await getLatestReleaseTag('sdk-kmp'))
         environment['runners']['sdk-swift'] = initRunner(true, false, await getLatestReleaseTag('sdk-swift'))
@@ -122,7 +122,7 @@ async function run(): Promise<string> {
         environment['services']['agent']['version'] = process.env.VERSION!
     } else if (component == 'mediator') {
         environment['services']['mediator']['version'] = process.env.VERSION!
-    } else if (component == 'prism-node') {
+    } else if (component == 'neoprism') {
         environment['services']['node']['version'] = process.env.VERSION!
     } else if (component == 'sdk-ts') {
         environment['runners']['sdk-ts'] = initRunner(true, true, process.env.VERSION!)
@@ -139,7 +139,7 @@ async function run(): Promise<string> {
     }
 
     // setup cloud
-    const urls = await setupCloud(environment)
+    const urls = setupCloud(environment)
     environment.services.agent.url = urls['cloud-agent:agent']
     environment.services.mediator.url = urls['mediator']
     return btoa(JSON.stringify(environment))
@@ -171,7 +171,7 @@ async function manualRun() {
                 url: ''
             },
             node: {
-                version: process.env.PRISM_NODE_VERSION!,
+                version: process.env.NEOPRISM_VERSION!,
                 url: ''
             }
         },
@@ -198,48 +198,31 @@ async function manualRun() {
     }
 
     // setup cloud
-    const urls = await setupCloud(environment)
+    const urls = setupCloud(environment)
     environment.services.agent.url = urls['cloud-agent:agent']
     environment.services.mediator.url = urls['mediator']
     return btoa(JSON.stringify(environment))
 }
 
-async function setupCloud(env: environment): Promise<Record<string, string>> {
-    const validatedEnv = validateCloudEnvironment()
-
-    const cloudAgentVersion = env.services.agent.version
-    const mediatorVersion = env.services.mediator.version
-    const prismNodeVersion = env.services.node.version
-
-    const cloudApiBaseUrl = validatedEnv.CLOUD_SERVICE_URL!
-    const cloudServiceToken = validatedEnv.CLOUD_SERVICE_TOKEN!
-    const templateId = validatedEnv.CLOUD_SERVICE_TEMPLATE_ID!
-
-    const headers = {
-        Authorization: `Bearer ${cloudServiceToken}`,
-        'Content-Type': 'application/json'
+/**
+ * Returns the URLs at which the self-contained Identus stack is reachable.
+ *
+ * The stack is brought up by the SDK runner workflows via
+ * `infra/docker-compose.ci.yml` on the same runner that executes the tests.
+ * It is exposed over `host.docker.internal` (mapped to 127.0.0.1 in the
+ * runner's /etc/hosts) so that the host-side test process and the containers
+ * resolve identical URLs. The resolved component versions travel in the
+ * encoded environment and are passed to compose as image tags by the
+ * workflow, rather than being provisioned by an external service here.
+ *
+ * The return shape is kept identical to the previous external-deploy
+ * implementation so callers do not need to change.
+ */
+function setupCloud(_env: environment): Record<string, string> {
+    return {
+        'cloud-agent:agent': 'http://host.docker.internal:8080',
+        'mediator': 'http://host.docker.internal:8081'
     }
-
-    const inputValues = {
-        "CLOUD_AGENT_VERSION": cloudAgentVersion,
-        "MEDIATOR_VERSION": mediatorVersion,
-        "PRISM_NODE_VERSION": prismNodeVersion,
-    }
-
-    const deployRequest = await fetch(`${cloudApiBaseUrl}/api/templates/deploy/${templateId}`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-            runId: env.component,
-            inputValues
-        })
-    })
-
-    const deployResponseJson = await deployRequest.json() as { status: string, urls: Record<string, string> }
-    if (deployResponseJson.status != "success") {
-        throw `Deploy to preview environment failed:\n${JSON.stringify(deployResponseJson)}`
-    }
-    return deployResponseJson.urls
 }
 
 

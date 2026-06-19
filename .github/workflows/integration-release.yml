@@ -68,39 +68,8 @@ jobs:
           echo "sdk-swift=$(echo $ENV | base64 --decode | jq -r '.runners.["sdk-swift"].enabled')" >> "$GITHUB_OUTPUT"
           echo $ENV | base64 --decode
 
-  cloud-setup:
-    needs: main
-    name: Cloud setup
-    runs-on: ubuntu-latest
-    env:
-      ENV: ${{ needs.main.outputs.env }}
-      CLOUD_SERVICE_TOKEN: ${{ secrets.CLOUD_SERVICE_TOKEN }}
-      CLOUD_SERVICE_URL: ${{ secrets.CLOUD_SERVICE_URL }}
-      CLOUD_SERVICE_TEMPLATE_ID: ${{ secrets.CLOUD_SERVICE_TEMPLATE_ID }}
-
-    steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
-        with:
-          egress-policy: audit
-
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 1
-
-      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
-        with:
-          node-version: 20
-
-      - name: Setup environment
-        run: |
-          npm ci
-          npm run cloud:check
-          npm run cloud:setup
-
   sdk-ts:
-    needs: [main, cloud-setup]
+    needs: [main]
     if: needs.main.outputs.sdk-ts  == 'true'
     secrets:
       SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
@@ -109,7 +78,7 @@ jobs:
       env: ${{ needs.main.outputs.env }}
 
   sdk-kmp:
-    needs: [main, cloud-setup]
+    needs: [main]
     if: false # needs.main.outputs.sdk-kmp  == 'true'
     secrets:
       SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
@@ -118,7 +87,7 @@ jobs:
       env: ${{ needs.main.outputs.env }}
 
   sdk-swift:
-    needs: [main, cloud-setup]
+    needs: [main]
     if: needs.main.outputs.sdk-swift  == 'true'
     secrets:
       SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}

@@ -4,6 +4,8 @@ TypeScript / Vitest end-to-end integration test suite for the Identus ecosystem.
 
 ## Developer commands
 
+Enter the Nix devshell first (`nix develop` or `direnv allow`) if available — it provides all the tools below, but is optional if you already have them on PATH.
+
 ```bash
 npm ci                           # install dependencies
 npm test                         # run all tests (vitest run)
@@ -50,11 +52,12 @@ Integration test flows cover: connection establishment, credential issuance (JWT
 
 ## Environment & CI
 
-- Requires `.env` file (copy from `.env.example`). **`GH_TOKEN` is required.** Optional: `SLACK_WEBHOOK`, `CLOUD_SERVICE_URL/TOKEN/TEMPLATE_ID`, `DEBUG=true` for verbose output, `CI=true` in CI.
+- Requires `.env` file (copy from `.env.example`). **`GH_TOKEN` is required.** Optional: `SLACK_WEBHOOK`, `DEBUG=true` for verbose output, `CI=true` in CI.
 - Node.js 20+ required.
-- Integration tests need a running cloud-agent + mediator stack. In CI, `npm run environment` provisions this; locally, the environment must be set up manually or via `integration-manual.yml`.
+- Integration tests need a running cloud-agent + mediator stack. `npm run environment` only resolves component versions and emits localhost URLs; the stack itself is brought up by the SDK runner workflows via `infra/docker-compose.ci.yml` on the same runner that executes the tests. Locally, start that compose by hand with `CLOUD_AGENT_VERSION`/`MEDIATOR_VERSION`/`NEOPRISM_VERSION` set (the neoprism service in the compose runs in `dev` mode — in-memory blockchain + in-memory SQLite — and is reachable from the cloud-agent over the in-network DNS name `neoprism:8080`).
 - CI triggers via `repository_dispatch` with event type `integration` and payload `{component, version}`. See `.github/workflows/integration.yml`.
 - Manual testing: `.github/workflows/integration-manual.yml` (GitHub Actions UI → "Run workflow").
+- **Justfile recipes** — trigger integration runs from the CLI: `just run-sdk-ts-e2e` (non-blocking, CI only) and `just run-sdk-swift-e2e` (blocking, local docker + ngrok tunnel). Version variables at the top of `justfile` configure the run. See [README](README.md#running-the-integration-harness) for prerequisites and the `run-identus-integration` skill for an AI-assisted workflow.
 - Weekly cron job (`weekly.yml`) tests all components at `main`/latest.
 - Report output lands in `initial-pages/` and `latest-history/`.
 

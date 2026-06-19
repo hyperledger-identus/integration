@@ -11,9 +11,6 @@ export interface EnvironmentConfig {
   COMPONENT?: string;
   VERSION?: string;
   RUN_ID?: string;
-  CLOUD_SERVICE_URL?: string;
-  CLOUD_SERVICE_TEMPLATE_ID?: string;
-  CLOUD_SERVICE_TOKEN?: string;
 }
 
 export interface ValidationError {
@@ -76,10 +73,7 @@ export function validateBaseEnvironment(): EnvironmentConfig {
     CI: process.env.CI,
     COMPONENT: process.env.COMPONENT,
     VERSION: process.env.VERSION,
-    RUN_ID: process.env.RUN_ID,
-    CLOUD_SERVICE_URL: process.env.CLOUD_SERVICE_URL,
-    CLOUD_SERVICE_TEMPLATE_ID: process.env.CLOUD_SERVICE_TEMPLATE_ID,
-    CLOUD_SERVICE_TOKEN: process.env.CLOUD_SERVICE_TOKEN
+    RUN_ID: process.env.RUN_ID
   }
 }
 
@@ -113,83 +107,6 @@ export function validateReleaseEnvironment(): EnvironmentConfig {
   return {
     ...env,
     VERSION: version
-  }
-}
-
-/**
- * Validates environment for cloud operations only (no GH_TOKEN required)
- */
-export function validateCloudEnvironment(): EnvironmentConfig {
-  const errors: ValidationError[] = []
-
-  // Check only cloud-specific required variables
-  const cloudRequiredVars = [
-    'CLOUD_SERVICE_URL',
-    'CLOUD_SERVICE_TEMPLATE_ID',
-    'CLOUD_SERVICE_TOKEN'
-  ]
-
-  for (const varName of cloudRequiredVars) {
-    if (!process.env[varName] || process.env[varName]?.trim() === '') {
-      errors.push({
-        field: varName,
-        message: `${varName} is required for cloud operations but not set or empty`,
-        required: true
-      })
-    }
-  }
-
-  // Validate cloud service URL format
-  if (process.env.CLOUD_SERVICE_URL && !isValidUrl(process.env.CLOUD_SERVICE_URL)) {
-    errors.push({
-      field: 'CLOUD_SERVICE_URL',
-      message: 'CLOUD_SERVICE_URL must be a valid URL',
-      required: true
-    })
-  }
-
-  // Check optional variables with validation
-  if (process.env.SLACK_WEBHOOK && !isValidUrl(process.env.SLACK_WEBHOOK)) {
-    errors.push({
-      field: 'SLACK_WEBHOOK',
-      message: 'SLACK_WEBHOOK must be a valid URL',
-      required: false
-    })
-  }
-
-  if (process.env.RUN_ID && !isValidNumber(process.env.RUN_ID)) {
-    errors.push({
-      field: 'RUN_ID',
-      message: 'RUN_ID must be a valid number',
-      required: false
-    })
-  }
-
-  // If there are required field errors, throw
-  const requiredErrors = errors.filter(e => e.required)
-  if (requiredErrors.length > 0) {
-    const errorMessages = requiredErrors.map(e => `- ${e.message}`).join('\n')
-    const error = `Cloud environment validation failed:\n${errorMessages}`
-    throw new Error(error)
-  }
-
-  // Log warnings for optional field errors
-  const optionalErrors = errors.filter(e => !e.required)
-  if (optionalErrors.length > 0) {
-    const warningMessages = optionalErrors.map(e => `- ${e.message}`).join('\n')
-    console.warn(`Cloud environment validation warnings:\n${warningMessages}`)
-  }
-
-  return {
-    SLACK_WEBHOOK: process.env.SLACK_WEBHOOK,
-    DEBUG: process.env.DEBUG,
-    CI: process.env.CI,
-    COMPONENT: process.env.COMPONENT,
-    VERSION: process.env.VERSION,
-    RUN_ID: process.env.RUN_ID,
-    CLOUD_SERVICE_URL: process.env.CLOUD_SERVICE_URL!,
-    CLOUD_SERVICE_TEMPLATE_ID: process.env.CLOUD_SERVICE_TEMPLATE_ID!,
-    CLOUD_SERVICE_TOKEN: process.env.CLOUD_SERVICE_TOKEN!
   }
 }
 
@@ -249,10 +166,7 @@ export function validateIntegrationEnvironment(): EnvironmentConfig {
     CI: process.env.CI,
     COMPONENT: process.env.COMPONENT,
     VERSION: process.env.VERSION,
-    RUN_ID: process.env.RUN_ID,
-    CLOUD_SERVICE_URL: process.env.CLOUD_SERVICE_URL,
-    CLOUD_SERVICE_TEMPLATE_ID: process.env.CLOUD_SERVICE_TEMPLATE_ID,
-    CLOUD_SERVICE_TOKEN: process.env.CLOUD_SERVICE_TOKEN
+    RUN_ID: process.env.RUN_ID
   }
 }
 

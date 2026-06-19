@@ -9,7 +9,7 @@ export const components = [
     ...runners,
     'cloud-agent',
     'mediator',
-    'prism-node',
+    'neoprism',
     'weekly',
     'release',
     'manual'
@@ -21,7 +21,7 @@ export const repos = {
     "sdk-ts": "hyperledger-identus",
     "sdk-kmp": "hyperledger-identus",
     "sdk-swift": "hyperledger-identus",
-    "atala-prism": "input-output-hk",
+    "neoprism": "hyperledger-identus",
 } as const
 
 export type runner = typeof runners[number]
@@ -62,7 +62,7 @@ export interface ReleaseMetadata {
     components: {
         'cloud-agent': string
         'mediator': string
-        'prism-node': string
+        'neoprism': string
     }
     runners: Record<string, string>
     testResults: TestStats

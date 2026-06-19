@@ -29,7 +29,7 @@ function formatVersionInfo(env: environment): string {
   if (env.component === 'mediator') {
     return ` v${env.services.mediator.version}`
   }
-  if (env.component === 'prism-node') {
+  if (env.component === 'neoprism') {
     return ` v${env.services.node.version}`
   }
 

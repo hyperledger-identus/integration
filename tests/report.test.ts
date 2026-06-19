@@ -325,7 +325,25 @@ describe('Report Generation', () => {
       );
     });
 
-    it('rejects when Slack fails after a failed pipeline', async () => {
+    it('completes the report run successfully when Allure did not emit app.js', async () => {
+      // Reproduces the failure mode seen in the manual integration workflow
+      // (CI run 27254897667): Allure CLI prints "successfully generated" but
+      // leaves no `app.js` at the report root, so `postProcessAllure` would
+      // throw ENOENT and turn the workflow red. The runner must treat a
+      // missing `app.js` as a warning and finish the job.
+      const results = generateMockRunnerResults('sdk-ts', { passed: 3, failed: 0 });
+      await createMockAllureResultsDir(join(tempDir, 'tmp'), 'sdk-ts', results);
+
+      const env = envForRun();
+      process.env.ENV = Buffer.from(JSON.stringify(env)).toString('base64');
+
+      mockCmd.mockImplementation(createReportRunCmdHandler(tempDir, { omitAppJs: true }));
+
+      await expect(report.run()).resolves.toBeUndefined();
+      expect(mockSendSlackMessage).not.toHaveBeenCalled();
+    });
+
+    it('does not reject when Slack fails after a failed pipeline', async () => {
       const results = generateMockRunnerResults('sdk-ts', { passed: 1, failed: 1 });
       await createMockAllureResultsDir(join(tempDir, 'tmp'), 'sdk-ts', results);
 
@@ -334,7 +352,12 @@ describe('Report Generation', () => {
 
       mockSendSlackMessage.mockRejectedValueOnce(new Error('webhook failed'));
 
-      await expect(report.run()).rejects.toThrow(/Failed to send notification/);
+      // Slack is best-effort. Even if the webhook is dead (e.g. 404), the report
+      // job must still complete: `executionPassed` / `exceptionOccurred` are the
+      // source of truth for the workflow outcome, and re-throwing here used to
+      // mask the real report error and turn CI red for the wrong reason.
+      await expect(report.run()).resolves.toBeUndefined();
+      expect(mockSendSlackMessage).toHaveBeenCalledTimes(1);
     });
 
     it('uses the ENV component in the Slack URL when the pipeline fails', async () => {
