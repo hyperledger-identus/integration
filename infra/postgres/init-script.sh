@@ -6,9 +6,10 @@ set -u
 function create_user_and_database() {
 	local database=$1
 	local app_user=${database}-application-user
+	local app_password="${POSTGRES_APP_PASSWORD:-${POSTGRES_PASSWORD}}"
 	echo "  Creating user and database '$database'"
 	psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
-		CREATE USER "$app_user" WITH PASSWORD 'password';
+		CREATE USER "$app_user" WITH PASSWORD '$app_password';
 		CREATE DATABASE $database;
 		\c $database
 		ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO "$app_user";

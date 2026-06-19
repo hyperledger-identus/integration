@@ -14,7 +14,7 @@
             parent.postMessage({
                 type: 'iframeNavigation',
                 path: fullPath
-            }, '*');
+            }, window.location.origin);
         }
         window.location.href = "0/?c=" + Date.now()
     </script>
