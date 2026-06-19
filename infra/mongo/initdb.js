@@ -34,4 +34,4 @@ db.getCollection(collectionMessages).createIndex(
         partialFilterExpression: { "message_type": "Mediator" },
         expireAfterSeconds: expireAfterSeconds
     }
-)
+);

@@ -132,4 +132,3 @@ Relay what the recipe prints — nothing more. The user can click the URL for de
 - **sdk-ts**: The recipe prints the run number and GitHub Actions URL. Relay it: "sdk-ts triggered — run #<id>: <url>"
 - **sdk-swift**: The recipe blocks until completion and prints the final status with the URL. Relay the outcome: "sdk-swift run #<id> succeeded: <url>" or "sdk-swift run #<id> failed, see <url>"
 - **Both**: Relay the sdk-ts line first, then the sdk-swift line after it completes.
-

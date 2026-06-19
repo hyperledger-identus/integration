@@ -4,7 +4,7 @@ mediator_version    := "1.2.1"
 neoprism_version    := "0.14.1"
 sdk_swift_version   := "8.1.1"
 sdk_ts_version       := "8.0.0"
-workflow_branch     := "swift-ext-svc"
+workflow_branch     := "main"
 
 # Default recipe: show available targets.
 _default:
@@ -40,7 +40,8 @@ _resolve_run_id workflow:
     run_url="$(gh run view "$run_id" --json url --jq '.url')"
     printf '%s\n%s\n' "$run_id" "$run_url"
 
-# Run the sdk-ts e2e suite on CI against locally hosted Identus stack
+# Run the sdk-swift e2e suite against a locally hosted Identus stack
+# exposed via an ngrok tunnel to a GitHub-hosted macOS runner.
 run-sdk-swift-e2e:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -60,9 +61,12 @@ run-sdk-swift-e2e:
     fi
 
     # --- prerequisites (ngrok runs in a container now, so no host CLI needed) ---
-    for bin in docker docker-compose jq curl; do
+    for bin in docker jq curl; do
       command -v "$bin" >/dev/null 2>&1 || { echo "✗ missing '$bin' — run: nix develop"; exit 1; }
     done
+    # Verify `docker compose` v2 plugin is available (not the standalone
+    # `docker-compose` v1 binary — all compose invocations use the plugin syntax).
+    docker compose version >/dev/null 2>&1 || { echo "✗ 'docker compose' plugin not available — run: nix develop"; exit 1; }
     [ -n "${NGROK_AUTHTOKEN:-}" ] || { echo "✗ NGROK_AUTHTOKEN not set — put it in .env"; exit 1; }
     just _ensure_gh_auth "$WORKFLOW"
 

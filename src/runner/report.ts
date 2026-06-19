@@ -157,7 +157,10 @@ function postProcessAllure(reportPath: string, _env: environment, _currentReport
     // message while leaving no `app.js` at the report root. Post-processing is
     // a cosmetic enhancement, so treat its absence as a warning rather than
     // failing the whole report job.
-    if (!existsSync(appJsPath)) {
+    let appJs: string
+    try {
+        appJs = readFileSync(appJsPath).toString()
+    } catch {
         console.warn(
             `[REPORT] ${appJsPath} not found - skipping Allure post-processing. ` +
             `The report itself is still generated; only the buildUrl / xlink:href ` +
@@ -165,8 +168,6 @@ function postProcessAllure(reportPath: string, _env: environment, _currentReport
         )
         return
     }
-
-    let appJs = readFileSync(appJsPath).toString()
     appJs = appJs.replace(
         `return'                    <a class="link" href="'+a(i(null!=e?s(e,"buildUrl"):e,e))`,
         `return'                    <a class="link" target="_blank" href="'+a(i(null!=e?s(e,"buildUrl"):e,e))`
