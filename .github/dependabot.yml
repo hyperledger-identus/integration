@@ -18,6 +18,11 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
+    # typescript 7 is not yet accepted by @typescript-eslint peer range
+    # (>=4.8.4 <6.1.0); revisit once typescript-eslint ships TS7 support.
+    ignore:
+      - dependency-name: "typescript"
+        versions: [">=7"]
     commit-message:
       prefix: "chore"
       include: "scope"
